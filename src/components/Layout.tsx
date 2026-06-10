@@ -278,7 +278,7 @@ export default function Layout() {
                   <label>Full Legal Name</label>
                   <input
                     autoFocus
-                    placeholder="e.g. Michael A. Pham"
+                    placeholder="e.g. John Smith or JS Properties, LLC."
                     value={acctName}
                     onChange={(e) => setAcctName(e.target.value)}
                     autoComplete="name"
