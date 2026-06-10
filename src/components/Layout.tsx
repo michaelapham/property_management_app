@@ -31,7 +31,7 @@ export default function Layout() {
     <div className="app-shell">
       <nav className="tab-nav" aria-label="Main navigation">
         <div className="nav-brand">
-          <img src="/icon.svg" alt="" />
+          <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" />
           LandlordHQ
         </div>
         {TABS.map(({ to, label, icon: Icon, end }) => (
@@ -51,7 +51,7 @@ export default function Layout() {
           <div className="top-bar-inner">
             <div>
               <h1>
-                <img className="logo" src="/icon.svg" alt="" />
+                <img className="logo" src={`${import.meta.env.BASE_URL}icon.svg`} alt="" />
                 {head?.title ?? "LandlordHQ"}
               </h1>
               {head?.sub && <div className="subtitle">{head.sub}</div>}
