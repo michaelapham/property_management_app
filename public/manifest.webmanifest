@@ -1,0 +1,17 @@
+{
+  "name": "LandlordHQ",
+  "short_name": "LandlordHQ",
+  "description": "Rent tracking, tenant notes, contractors and receipts for small landlords.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f3ee",
+  "theme_color": "#16322e",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
