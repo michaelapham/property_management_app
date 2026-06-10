@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useStore } from "../data/store";
+import SpeedDial from "./SpeedDial";
 import {
   BuildingIcon,
   HomeIcon,
@@ -189,6 +190,7 @@ export default function Layout() {
         <main className="app-main">
           <Outlet />
         </main>
+        <SpeedDial />
       </div>
 
       {showDrawer && (

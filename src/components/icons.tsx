@@ -144,3 +144,11 @@ export const MenuIcon = ({ size }: IconProps) => (
     <path d="M3 6h18M3 12h18M3 18h18" />
   </svg>
 );
+
+export const ClipboardIcon = ({ size }: IconProps) => (
+  <svg {...svgProps(size)}>
+    <rect x="9" y="2" width="6" height="4" rx="1" />
+    <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+    <path d="M9 12h6M9 16h4" />
+  </svg>
+);
