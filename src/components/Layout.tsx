@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useStore } from "../data/store";
 import {
   BuildingIcon,
-  GearIcon,
   HomeIcon,
   MenuIcon,
   PeopleIcon,
@@ -28,17 +28,51 @@ const TITLES: Record<string, { title: string; sub?: string }> = {
 };
 
 const SUGGESTIONS_KEY = "landlordhq-suggestions";
+const ACCOUNT_KEY = "landlordhq-account";
+const SIGNED_IN_KEY = "landlordhq-signed-in";
 
-type DrawerView = "menu" | "account" | "suggestions" | "about";
+interface Account {
+  name: string;
+  email: string;
+  password: string;
+}
+
+function loadAccount(): Account | null {
+  try {
+    return JSON.parse(localStorage.getItem(ACCOUNT_KEY) ?? "null");
+  } catch {
+    return null;
+  }
+}
+
+type DrawerView =
+  | "menu"
+  | "account"
+  | "suggestions"
+  | "about"
+  | "create"
+  | "signin";
 
 export default function Layout() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const { updateSettings } = useStore();
   const head = TITLES[pathname];
 
   const [showDrawer, setShowDrawer] = useState(false);
   const [drawerView, setDrawerView] = useState<DrawerView>("menu");
   const [suggestionText, setSuggestionText] = useState("");
   const [suggestionSent, setSuggestionSent] = useState(false);
+
+  // Local account — stored on device only
+  const [account, setAccount] = useState<Account | null>(loadAccount);
+  const [signedIn, setSignedIn] = useState(
+    () => localStorage.getItem(SIGNED_IN_KEY) === "1"
+  );
+  const [acctName, setAcctName] = useState("");
+  const [acctEmail, setAcctEmail] = useState("");
+  const [acctPassword, setAcctPassword] = useState("");
+  const [authError, setAuthError] = useState("");
 
   function openDrawer() {
     setDrawerView("menu");
@@ -48,6 +82,14 @@ export default function Layout() {
 
   function closeDrawer() {
     setShowDrawer(false);
+  }
+
+  function goTo(view: DrawerView) {
+    setAcctName("");
+    setAcctEmail("");
+    setAcctPassword("");
+    setAuthError("");
+    setDrawerView(view);
   }
 
   function submitSuggestion() {
@@ -60,6 +102,51 @@ export default function Layout() {
     setSuggestionText("");
     setSuggestionSent(true);
   }
+
+  function createAccount() {
+    const acct: Account = {
+      name: acctName.trim(),
+      email: acctEmail.trim().toLowerCase(),
+      password: acctPassword,
+    };
+    localStorage.setItem(ACCOUNT_KEY, JSON.stringify(acct));
+    localStorage.setItem(SIGNED_IN_KEY, "1");
+    setAccount(acct);
+    setSignedIn(true);
+    // The account's real name appears as the landlord name on ledger exports
+    updateSettings({ landlordName: acct.name });
+    goTo("account");
+  }
+
+  function signIn() {
+    if (
+      account &&
+      acctEmail.trim().toLowerCase() === account.email &&
+      acctPassword === account.password
+    ) {
+      localStorage.setItem(SIGNED_IN_KEY, "1");
+      setSignedIn(true);
+      if (account.name) updateSettings({ landlordName: account.name });
+      goTo("account");
+    } else {
+      setAuthError(
+        account
+          ? "Email or password doesn't match."
+          : "No account found on this device — create one first."
+      );
+    }
+  }
+
+  function logOut() {
+    localStorage.removeItem(SIGNED_IN_KEY);
+    setSignedIn(false);
+    setDrawerView("menu");
+  }
+
+  const createValid =
+    acctName.trim().length > 1 &&
+    acctEmail.trim().includes("@") &&
+    acctPassword.length >= 4;
 
   return (
     <div className="app-shell">
@@ -79,14 +166,6 @@ export default function Layout() {
             {label}
           </NavLink>
         ))}
-        <NavLink
-          to="/settings"
-          className={({ isActive }) => `nav-settings-link${isActive ? " active" : ""}`}
-          aria-label="Settings"
-        >
-          <GearIcon />
-          Settings
-        </NavLink>
       </nav>
       <div className="app-content">
         <header className="top-bar">
@@ -117,7 +196,7 @@ export default function Layout() {
           <div className="drawer" onClick={(e) => e.stopPropagation()}>
             <div className="drawer-header">
               {drawerView !== "menu" && (
-                <button className="drawer-back" onClick={() => setDrawerView("menu")}>
+                <button className="drawer-back" onClick={() => goTo("menu")}>
                   ← Back
                 </button>
               )}
@@ -126,15 +205,40 @@ export default function Layout() {
 
             {drawerView === "menu" && (
               <>
-                <button className="drawer-item" onClick={() => setDrawerView("account")}>
-                  Account
+                {signedIn && (
+                  <button className="drawer-item" onClick={() => goTo("account")}>
+                    Account
+                  </button>
+                )}
+                <button
+                  className="drawer-item"
+                  onClick={() => {
+                    closeDrawer();
+                    navigate("/settings");
+                  }}
+                >
+                  Settings
                 </button>
-                <button className="drawer-item" onClick={() => setDrawerView("suggestions")}>
+                <button className="drawer-item" onClick={() => goTo("suggestions")}>
                   Suggestion Box
                 </button>
-                <button className="drawer-item" onClick={() => setDrawerView("about")}>
+                <button className="drawer-item" onClick={() => goTo("about")}>
                   About
                 </button>
+                {signedIn ? (
+                  <button className="drawer-item drawer-item-danger" onClick={logOut}>
+                    Log Out
+                  </button>
+                ) : (
+                  <>
+                    <button className="drawer-item" onClick={() => goTo("create")}>
+                      Create Account
+                    </button>
+                    <button className="drawer-item" onClick={() => goTo("signin")}>
+                      Sign In
+                    </button>
+                  </>
+                )}
                 <div className="drawer-version">v0.1.0</div>
               </>
             )}
@@ -142,9 +246,113 @@ export default function Layout() {
             {drawerView === "account" && (
               <div className="drawer-content">
                 <h3>Account</h3>
-                <p style={{ color: "var(--ink-soft)", fontSize: 15, marginTop: 8 }}>
-                  Account management is coming soon. Your data is stored locally on this device.
+                {signedIn && account ? (
+                  <>
+                    <p style={{ fontSize: 16, fontWeight: 650, marginTop: 12 }}>
+                      {account.name}
+                    </p>
+                    <p style={{ color: "var(--ink-soft)", fontSize: 15, marginTop: 4 }}>
+                      {account.email}
+                    </p>
+                    <p style={{ color: "var(--ink-faint)", fontSize: 14, marginTop: 14 }}>
+                      Your name appears as the landlord on rent ledger exports.
+                      Your data is stored locally on this device.
+                    </p>
+                  </>
+                ) : (
+                  <p style={{ color: "var(--ink-soft)", fontSize: 15, marginTop: 8 }}>
+                    You're not signed in. Create an account or sign in from the menu.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {drawerView === "create" && (
+              <div className="drawer-content">
+                <h3>Create Account</h3>
+                <p style={{ color: "var(--ink-soft)", fontSize: 15, marginTop: 8, marginBottom: 16 }}>
+                  Use your real name — it appears as the landlord name on rent
+                  ledger exports.
                 </p>
+                <div className="field">
+                  <label>Full Legal Name</label>
+                  <input
+                    autoFocus
+                    placeholder="e.g. Michael A. Pham"
+                    value={acctName}
+                    onChange={(e) => setAcctName(e.target.value)}
+                    autoComplete="name"
+                  />
+                  <p className="hint">Shown on ledgers & official records</p>
+                </div>
+                <div className="field">
+                  <label>Email</label>
+                  <input
+                    inputMode="email"
+                    placeholder="you@email.com"
+                    value={acctEmail}
+                    onChange={(e) => setAcctEmail(e.target.value)}
+                    autoComplete="email"
+                  />
+                </div>
+                <div className="field">
+                  <label>Password</label>
+                  <input
+                    type="password"
+                    placeholder="At least 4 characters"
+                    value={acctPassword}
+                    onChange={(e) => setAcctPassword(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                </div>
+                <button
+                  className="btn btn-primary btn-block"
+                  disabled={!createValid}
+                  onClick={createAccount}
+                >
+                  Create Account
+                </button>
+              </div>
+            )}
+
+            {drawerView === "signin" && (
+              <div className="drawer-content">
+                <h3>Sign In</h3>
+                <p style={{ color: "var(--ink-soft)", fontSize: 15, marginTop: 8, marginBottom: 16 }}>
+                  Sign in to the account on this device.
+                </p>
+                <div className="field">
+                  <label>Email</label>
+                  <input
+                    autoFocus
+                    inputMode="email"
+                    placeholder="you@email.com"
+                    value={acctEmail}
+                    onChange={(e) => setAcctEmail(e.target.value)}
+                    autoComplete="email"
+                  />
+                </div>
+                <div className="field">
+                  <label>Password</label>
+                  <input
+                    type="password"
+                    value={acctPassword}
+                    onChange={(e) => setAcctPassword(e.target.value)}
+                    autoComplete="current-password"
+                  />
+                </div>
+                {authError && (
+                  <p style={{ color: "var(--red)", fontSize: 14, marginBottom: 12 }}>
+                    {authError}
+                  </p>
+                )}
+                <button
+                  className="btn btn-primary btn-block"
+                  disabled={!acctEmail.trim() || !acctPassword}
+                  onClick={signIn}
+                >
+                  Sign In
+                </button>
               </div>
             )}
 
