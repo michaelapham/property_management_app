@@ -171,7 +171,7 @@ export default function PropertyDetail() {
       <div style={{ marginTop: 20 }}>
         {!confirmDelete ? (
           <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(true)}>
-            <TrashIcon size={15} /> Remove property
+            <TrashIcon size={15} /> Remove Property
           </button>
         ) : (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -185,7 +185,7 @@ export default function PropertyDetail() {
                 navigate("/properties");
               }}
             >
-              Confirm — remove {property.street}, its tenants & history
+              Confirm — Remove {property.street}, Its Tenants & History
             </button>
           </div>
         )}

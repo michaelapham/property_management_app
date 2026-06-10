@@ -159,7 +159,7 @@ export default function Dashboard() {
                     <CheckIcon size={16} />
                     {status === "partial"
                       ? `Collect ${money(remaining)}`
-                      : "Mark paid"}
+                      : "Mark Paid"}
                   </button>
                   <button
                     className="btn btn-ghost btn-sm"
@@ -206,7 +206,7 @@ export default function Dashboard() {
           <span className="qa-icon">
             <WrenchIcon size={19} />
           </span>
-          <span className="qa-label">Call a contractor</span>
+          <span className="qa-label">Call a Contractor</span>
           <span className="qa-sub">Your pros + nearby options</span>
         </button>
         <button
@@ -216,14 +216,14 @@ export default function Dashboard() {
           <span className="qa-icon">
             <SparkleIcon size={19} />
           </span>
-          <span className="qa-label">Prepare for a call</span>
+          <span className="qa-label">Prepare for a Call</span>
           <span className="qa-sub">Script, causes & price guide</span>
         </button>
         <button className="quick-action" onClick={() => navigate("/scanner")}>
           <span className="qa-icon">
             <ScanIcon size={19} />
           </span>
-          <span className="qa-label">Scan a receipt</span>
+          <span className="qa-label">Scan a Receipt</span>
           <span className="qa-sub">For tax records</span>
         </button>
         <button
@@ -233,7 +233,7 @@ export default function Dashboard() {
           <span className="qa-icon">
             <PlusIcon size={19} />
           </span>
-          <span className="qa-label">Add a property</span>
+          <span className="qa-label">Add a Property</span>
           <span className="qa-sub">House, rent & tenant info</span>
         </button>
       </div>
@@ -278,7 +278,7 @@ function Welcome() {
         onClick={() => navigate("/properties/new")}
       >
         <PlusIcon size={20} />
-        Add your first property
+        Add Your First Property
       </button>
     </div>
   );

@@ -175,7 +175,7 @@ export default function TenantDetail() {
       <div style={{ marginTop: 20 }}>
         {!confirmDelete ? (
           <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(true)}>
-            <TrashIcon size={15} /> Remove tenant
+            <TrashIcon size={15} /> Remove Tenant
           </button>
         ) : (
           <div style={{ display: "flex", gap: 8 }}>
@@ -189,7 +189,7 @@ export default function TenantDetail() {
                 navigate("/tenants");
               }}
             >
-              Confirm — remove {tenant.firstName} & their history
+              Confirm — Remove {tenant.firstName} & Their History
             </button>
           </div>
         )}

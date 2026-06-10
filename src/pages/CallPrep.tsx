@@ -86,7 +86,7 @@ export default function CallPrep() {
         <ChevronLeft size={16} /> Contractors
       </Link>
 
-      <h2 style={{ marginBottom: 4 }}>Prepare for this call</h2>
+      <h2 style={{ marginBottom: 4 }}>Prepare for This Call</h2>
       <p style={{ color: "var(--ink-soft)", fontSize: 16, marginBottom: 16 }}>
         Describe the problem (type or dictate). You'll get a call script,
         safety steps, the top likely causes, and a fair-price frame of
@@ -129,7 +129,7 @@ export default function CallPrep() {
             onClick={analyze}
           >
             <SparkleIcon size={17} />
-            Prepare me for this call
+            Prepare Me for This Call
           </button>
         </div>
       </div>
@@ -139,14 +139,14 @@ export default function CallPrep() {
           {result.profile ? (
             <>
               <div className="section-title">
-                <span>⚠️ Safety first</span>
+                <span>⚠️ Safety First</span>
               </div>
               {result.profile.safety.map((s, i) => (
                 <div key={i} className="safety-line">{s}</div>
               ))}
 
               <div className="section-title">
-                <span>📞 Your call script</span>
+                <span>📞 Your Call Script</span>
               </div>
               <div className="card">
                 {result.script.map((line, i) => (
@@ -155,7 +155,7 @@ export default function CallPrep() {
               </div>
 
               <div className="section-title">
-                <span>🔍 Top {result.profile.causes.length} likely causes</span>
+                <span>🔍 Top {result.profile.causes.length} Likely Causes</span>
               </div>
               {result.profile.causes.map((c, i) => (
                 <div key={i} className="cause-card" style={{ background: "var(--surface)" }}>
@@ -171,7 +171,7 @@ export default function CallPrep() {
               </div>
 
               <div className="section-title">
-                <span>Call a {tradeLabel(result.profile.trade).toLowerCase()}</span>
+                <span>Call a {tradeLabel(result.profile.trade)}</span>
               </div>
               {matchedTradePros.length > 0 ? (
                 matchedTradePros.map((c) => (
@@ -189,7 +189,7 @@ export default function CallPrep() {
                 ))
               ) : (
                 <Link to="/contractors" className="btn btn-primary btn-block">
-                  Find a {tradeLabel(result.profile.trade).toLowerCase()} nearby
+                  Find a {tradeLabel(result.profile.trade)} Nearby
                 </Link>
               )}
             </>

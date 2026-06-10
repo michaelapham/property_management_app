@@ -241,11 +241,11 @@ export default function AddProperty() {
             <div className="field">
               <label>Foundation</label>
               <select value={foundation} onChange={(e) => setFoundation(e.target.value as FoundationType)}>
-                <option value="unknown">Not sure</option>
+                <option value="unknown">Not Sure</option>
                 <option value="slab">Slab</option>
                 <option value="crawlspace">Crawlspace</option>
                 <option value="basement">Basement</option>
-                <option value="pier-and-beam">Pier & beam</option>
+                <option value="pier-and-beam">Pier & Beam</option>
               </select>
             </div>
           </div>
@@ -253,10 +253,10 @@ export default function AddProperty() {
             <div className="field">
               <label>Construction</label>
               <select value={construction} onChange={(e) => setConstruction(e.target.value as ConstructionType)}>
-                <option value="unknown">Not sure</option>
+                <option value="unknown">Not Sure</option>
                 <option value="brick">Brick</option>
-                <option value="wood-frame">Wood frame</option>
-                <option value="vinyl-siding">Vinyl siding</option>
+                <option value="wood-frame">Wood Frame</option>
+                <option value="vinyl-siding">Vinyl Siding</option>
                 <option value="stucco">Stucco</option>
                 <option value="stone">Stone</option>
                 <option value="mixed">Mixed</option>
@@ -265,12 +265,12 @@ export default function AddProperty() {
             <div className="field">
               <label>Fence</label>
               <select value={fence} onChange={(e) => setFence(e.target.value as FenceType)}>
-                <option value="unknown">Not sure</option>
-                <option value="none">No fence</option>
+                <option value="unknown">Not Sure</option>
+                <option value="none">No Fence</option>
                 <option value="chainlink">Chainlink</option>
                 <option value="wood">Wood</option>
                 <option value="vinyl">Vinyl</option>
-                <option value="wrought-iron">Wrought iron</option>
+                <option value="wrought-iron">Wrought Iron</option>
                 <option value="mixed">Mixed</option>
               </select>
             </div>
@@ -298,13 +298,13 @@ export default function AddProperty() {
               className={`tag-chip${hasTenant ? " on" : ""}`}
               onClick={() => setHasTenant(true)}
             >
-              Occupied — add tenant
+              Occupied — Add Tenant
             </button>
             <button
               className={`tag-chip${!hasTenant ? " on" : ""}`}
               onClick={() => setHasTenant(false)}
             >
-              Vacant for now
+              Vacant for Now
             </button>
           </div>
 
@@ -351,7 +351,7 @@ export default function AddProperty() {
             disabled={!tenantValid}
             onClick={finish}
           >
-            Save property{hasTenant && firstName ? " & tenant" : ""}
+            Save Property{hasTenant && firstName ? " & Tenant" : ""}
           </button>
         </div>
       )}

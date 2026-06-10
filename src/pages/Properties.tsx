@@ -15,7 +15,7 @@ export default function Properties() {
           <h3>No properties yet</h3>
           <p>Add your first rental — address, house details, rent and tenant info.</p>
           <button className="btn btn-primary" onClick={() => navigate("/properties/new")}>
-            <PlusIcon size={18} /> Add property
+            <PlusIcon size={18} /> Add Property
           </button>
         </div>
       ) : (

@@ -12,13 +12,13 @@ import { PlusIcon, SparkleIcon, StarIcon, TrashIcon } from "../components/icons"
 
 export const TRADES: { value: Trade; label: string; emoji: string }[] = [
   { value: "plumber", label: "Plumber", emoji: "🔧" },
-  { value: "hvac", label: "HVAC tech", emoji: "❄️" },
+  { value: "hvac", label: "HVAC Tech", emoji: "❄️" },
   { value: "electrician", label: "Electrician", emoji: "⚡" },
   { value: "handyman", label: "Handyman", emoji: "🔨" },
   { value: "roofer", label: "Roofer", emoji: "🏠" },
   { value: "landscaper", label: "Landscaper", emoji: "🌿" },
-  { value: "pest-control", label: "Pest control", emoji: "🐜" },
-  { value: "appliance", label: "Appliance repair", emoji: "🧺" },
+  { value: "pest-control", label: "Pest Control", emoji: "🐜" },
+  { value: "appliance", label: "Appliance Repair", emoji: "🧺" },
   { value: "other", label: "Other", emoji: "🛠️" },
 ];
 
@@ -48,7 +48,7 @@ export default function Contractors() {
       <Link to="/contractors/prepare" className="card" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, background: "var(--accent-bg)", borderColor: "var(--brand)" }}>
         <span style={{ color: "var(--brand)" }}><SparkleIcon /></span>
         <div className="row-body">
-          <div className="row-title">Prepare for a call</div>
+          <div className="row-title">Prepare for a Call</div>
           <div className="row-sub" style={{ color: "var(--ink-soft)" }}>
             Describe the problem → get a script, likely causes & fair-price guide
           </div>
@@ -69,7 +69,7 @@ export default function Contractors() {
       </div>
 
       <div className="section-title">
-        <span>My {tradeLabel(selectedTrade).toLowerCase()}s</span>
+        <span>My {tradeLabel(selectedTrade)}s</span>
         <button className="btn btn-ghost btn-sm" onClick={() => setShowAdd(true)}>
           <PlusIcon size={14} /> Add
         </button>
@@ -78,7 +78,7 @@ export default function Contractors() {
       {saved.length === 0 ? (
         <div className="card">
           <p style={{ color: "var(--ink-soft)", fontSize: 15 }}>
-            No saved {tradeLabel(selectedTrade).toLowerCase()} yet — save the
+            No saved {tradeLabel(selectedTrade)} yet — save the
             ones you trust for one-tap calling. Until then, here are nearby
             options below.
           </p>
@@ -120,7 +120,7 @@ export default function Contractors() {
       )}
 
       <div className="section-title">
-        <span>Nearby {tradeLabel(selectedTrade).toLowerCase()}s · {cityLabel}</span>
+        <span>Nearby {tradeLabel(selectedTrade)}s · {cityLabel}</span>
       </div>
       <p className="banner">
         Demo listings with estimated rates (averaged for the area, outliers
@@ -252,9 +252,9 @@ function AddContractorModal({
   const [notes, setNotes] = useState("");
 
   return (
-    <Modal title="Add a contractor" subtitle="Save your trusted pros for one-tap calls." onClose={onClose}>
+    <Modal title="Add a Contractor" subtitle="Save your trusted pros for one-tap calls." onClose={onClose}>
       <div className="field">
-        <label>Name / business</label>
+        <label>Name / Business</label>
         <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Joe's Plumbing" />
       </div>
       <div className="field-row">
@@ -272,11 +272,11 @@ function AddContractorModal({
         </div>
       </div>
       <div className="field">
-        <label>Hours (optional)</label>
+        <label>Hours (Optional)</label>
         <input value={hours} onChange={(e) => setHours(e.target.value)} placeholder="Mon–Fri 8–5" />
       </div>
       <div className="field">
-        <label>Notes (optional)</label>
+        <label>Notes (Optional)</label>
         <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Did the water heater in 2024, fair prices" />
       </div>
       <button
@@ -292,7 +292,7 @@ function AddContractorModal({
           })
         }
       >
-        Save contractor
+        Save Contractor
       </button>
     </Modal>
   );

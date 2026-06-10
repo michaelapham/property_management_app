@@ -75,14 +75,14 @@ export default function Scanner() {
         <>
           <div className="card" style={{ textAlign: "center", padding: "28px 16px" }}>
             <div style={{ fontSize: 42, marginBottom: 8 }}>🧾</div>
-            <h3 style={{ marginBottom: 6 }}>Scan a receipt or document</h3>
+            <h3 style={{ marginBottom: 6 }}>Scan a Receipt or Document</h3>
             <p style={{ color: "var(--ink-soft)", fontSize: 15, marginBottom: 16 }}>
               Snap a photo — it gets straightened into a clean, high-contrast
               scan and filed for tax time.
             </p>
             <button className="btn btn-primary btn-lg" onClick={() => fileRef.current?.click()}>
               <CameraIcon size={20} />
-              Scan now
+              Scan Now
             </button>
             <input
               ref={fileRef}
@@ -136,10 +136,10 @@ export default function Scanner() {
         <>
           <div className="tag-chip-row">
             <button className={`tag-chip${mode === "scan" ? " on" : ""}`} onClick={() => setMode("scan")}>
-              ✨ Enhanced scan
+              ✨ Enhanced Scan
             </button>
             <button className={`tag-chip${mode === "original" ? " on" : ""}`} onClick={() => setMode("original")}>
-              Original photo
+              Original Photo
             </button>
             <button className="tag-chip" onClick={() => setRotation((r) => (r + 90) % 360)}>
               ↻ Rotate
@@ -185,7 +185,7 @@ export default function Scanner() {
               <div className="field">
                 <label>Property (optional)</label>
                 <select value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
-                  <option value="">— None / general —</option>
+                  <option value="">— None / General —</option>
                   {data.properties.map((p) => (
                     <option key={p.id} value={p.id}>{fullAddress(p)}</option>
                   ))}
@@ -197,7 +197,7 @@ export default function Scanner() {
                 Discard
               </button>
               <button className="btn btn-green" style={{ flex: 2 }} onClick={save}>
-                Save receipt
+                Save Receipt
               </button>
             </div>
           </div>

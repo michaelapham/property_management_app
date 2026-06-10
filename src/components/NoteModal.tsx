@@ -4,8 +4,8 @@ import { useStore } from "../data/store";
 import type { NoteTag } from "../types";
 
 const TAG_OPTIONS: { tag: NoteTag; label: string }[] = [
-  { tag: "air-filter", label: "🌀 Air filter replaced" },
-  { tag: "new-pet", label: "🐾 New pet" },
+  { tag: "air-filter", label: "🌀 Air Filter Replaced" },
+  { tag: "new-pet", label: "🐾 New Pet" },
   { tag: "complaint", label: "⚠️ Complaint" },
   { tag: "maintenance", label: "🔧 Maintenance" },
   { tag: "payment", label: "💵 Payment" },
@@ -34,7 +34,7 @@ interface NoteModalProps {
 export default function NoteModal({
   tenantId,
   propertyId,
-  title = "Add a note",
+  title = "Add a Note",
   subtitle = "Even a quick note pays off later — interactions, complaints, maintenance, anything notable.",
   defaultTags = [],
   onClose,
@@ -110,7 +110,7 @@ export default function NoteModal({
           onClick={save}
           disabled={text.trim().length === 0 && tags.length === 0}
         >
-          Save note
+          Save Note
         </button>
       </div>
     </Modal>

@@ -17,7 +17,7 @@ export default function Tenants() {
         <h3>No tenants yet</h3>
         <p>Add a property with a tenant and they'll show up here with live rent status.</p>
         <button className="btn btn-primary" onClick={() => navigate("/properties/new")}>
-          <PlusIcon size={18} /> Add property & tenant
+          <PlusIcon size={18} /> Add Property & Tenant
         </button>
       </div>
     );
