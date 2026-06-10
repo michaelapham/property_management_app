@@ -109,7 +109,7 @@ export default function Dashboard() {
 
       {rows.length === 0 && (
         <div className="card">
-          <p style={{ color: "var(--ink-soft)", fontSize: 14.5 }}>
+          <p style={{ color: "var(--ink-soft)", fontSize: 16 }}>
             No tenants yet — add a tenant to a property to start tracking rent.
           </p>
         </div>

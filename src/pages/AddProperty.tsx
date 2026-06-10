@@ -132,7 +132,7 @@ export default function AddProperty() {
       </Link>
 
       <h2 style={{ marginBottom: 4 }}>{STEPS[step]}</h2>
-      <p style={{ color: "var(--ink-soft)", fontSize: 14, marginBottom: 16 }}>
+      <p style={{ color: "var(--ink-soft)", fontSize: 15, marginBottom: 16 }}>
         Step {step + 1} of {STEPS.length}
       </p>
       <div className="wizard-steps">

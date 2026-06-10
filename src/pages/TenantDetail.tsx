@@ -53,7 +53,7 @@ export default function TenantDetail() {
         <h2>
           {tenant.firstName} {tenant.lastName}
         </h2>
-        <p style={{ color: "var(--ink-soft)", fontSize: 14, marginTop: 4 }}>
+        <p style={{ color: "var(--ink-soft)", fontSize: 15, marginTop: 4 }}>
           {property ? fullAddress(property) : "No property assigned"}
         </p>
         <div style={{ marginTop: 8 }}>
@@ -131,7 +131,7 @@ export default function TenantDetail() {
       </div>
       <div className="card">
         {notes.length === 0 && (
-          <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>
+          <p style={{ color: "var(--ink-soft)", fontSize: 15 }}>
             No notes yet. Jot down interactions, complaints, maintenance —
             future you will be glad.
           </p>

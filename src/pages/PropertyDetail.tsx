@@ -71,7 +71,7 @@ export default function PropertyDetail() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 44,
+            fontSize: 46,
           }}
         >
           🏠
@@ -79,7 +79,7 @@ export default function PropertyDetail() {
       )}
 
       <h2 style={{ marginTop: 14 }}>{property.street}</h2>
-      <p style={{ color: "var(--ink-soft)", fontSize: 14.5 }}>
+      <p style={{ color: "var(--ink-soft)", fontSize: 16 }}>
         {property.city}, {property.state} {property.zip}
       </p>
 
@@ -130,7 +130,7 @@ export default function PropertyDetail() {
       </div>
       {tenants.length === 0 ? (
         <div className="card">
-          <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>Currently vacant.</p>
+          <p style={{ color: "var(--ink-soft)", fontSize: 15 }}>Currently vacant.</p>
         </div>
       ) : (
         tenants.map((t) => (
@@ -155,7 +155,7 @@ export default function PropertyDetail() {
       </div>
       <div className="card">
         {notes.length === 0 && (
-          <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>No notes yet.</p>
+          <p style={{ color: "var(--ink-soft)", fontSize: 15 }}>No notes yet.</p>
         )}
         {notes.map((n) => (
           <div key={n.id} className="note-item">

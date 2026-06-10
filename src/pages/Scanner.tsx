@@ -74,9 +74,9 @@ export default function Scanner() {
       {!working && (
         <>
           <div className="card" style={{ textAlign: "center", padding: "28px 16px" }}>
-            <div style={{ fontSize: 38, marginBottom: 8 }}>🧾</div>
+            <div style={{ fontSize: 42, marginBottom: 8 }}>🧾</div>
             <h3 style={{ marginBottom: 6 }}>Scan a receipt or document</h3>
-            <p style={{ color: "var(--ink-soft)", fontSize: 14, marginBottom: 16 }}>
+            <p style={{ color: "var(--ink-soft)", fontSize: 15, marginBottom: 16 }}>
               Snap a photo — it gets straightened into a clean, high-contrast
               scan and filed for tax time.
             </p>
@@ -108,7 +108,7 @@ export default function Scanner() {
           </div>
           {data.receipts.length === 0 ? (
             <div className="card">
-              <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>
+              <p style={{ color: "var(--ink-soft)", fontSize: 15 }}>
                 Nothing saved yet. Every scanned receipt lands here, organized
                 for record-keeping and taxes.
               </p>

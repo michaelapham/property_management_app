@@ -45,11 +45,11 @@ export default function Contractors() {
 
   return (
     <>
-      <Link to="/contractors/prepare" className="card" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, background: "var(--brand)", color: "#f2efe6" }}>
-        <span style={{ color: "var(--accent)" }}><SparkleIcon /></span>
+      <Link to="/contractors/prepare" className="card" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, background: "var(--accent-bg)", borderColor: "var(--brand)" }}>
+        <span style={{ color: "var(--brand)" }}><SparkleIcon /></span>
         <div className="row-body">
           <div className="row-title">Prepare for a call</div>
-          <div className="row-sub" style={{ color: "rgba(242,239,230,0.7)" }}>
+          <div className="row-sub" style={{ color: "var(--ink-soft)" }}>
             Describe the problem → get a script, likely causes & fair-price guide
           </div>
         </div>
@@ -77,7 +77,7 @@ export default function Contractors() {
 
       {saved.length === 0 ? (
         <div className="card">
-          <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>
+          <p style={{ color: "var(--ink-soft)", fontSize: 15 }}>
             No saved {tradeLabel(selectedTrade).toLowerCase()} yet — save the
             ones you trust for one-tap calling. Until then, here are nearby
             options below.
@@ -206,7 +206,7 @@ function NearbyCard({
         <span>Weekday {c.weekdayRate}</span>
         <span>Weekend {c.weekendRate}</span>
       </div>
-      <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6 }}>
+      <div style={{ fontSize: 14, color: "var(--ink-soft)", marginTop: 6 }}>
         {c.services.join(" · ")}
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 11 }}>

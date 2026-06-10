@@ -4,8 +4,8 @@
   "description": "Rent tracking, tenant notes, contractors and receipts for small landlords.",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#f4f3ee",
-  "theme_color": "#16322e",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
   "icons": [
     {
       "src": "icon.svg",

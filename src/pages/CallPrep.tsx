@@ -87,7 +87,7 @@ export default function CallPrep() {
       </Link>
 
       <h2 style={{ marginBottom: 4 }}>Prepare for this call</h2>
-      <p style={{ color: "var(--ink-soft)", fontSize: 14, marginBottom: 16 }}>
+      <p style={{ color: "var(--ink-soft)", fontSize: 16, marginBottom: 16 }}>
         Describe the problem (type or dictate). You'll get a call script,
         safety steps, the top likely causes, and a fair-price frame of
         reference before you dial.
@@ -166,8 +166,8 @@ export default function CallPrep() {
                 </div>
               ))}
               <div className="card" style={{ background: "var(--green-bg)", boxShadow: "none" }}>
-                <strong style={{ fontSize: 14 }}>💰 Fair-price frame:</strong>{" "}
-                <span style={{ fontSize: 14 }}>{result.profile.typicalTotal}</span>
+                <strong style={{ fontSize: 15 }}>💰 Fair-price frame:</strong>{" "}
+                <span style={{ fontSize: 15 }}>{result.profile.typicalTotal}</span>
               </div>
 
               <div className="section-title">
@@ -195,7 +195,7 @@ export default function CallPrep() {
             </>
           ) : (
             <div className="card">
-              <p style={{ fontSize: 14.5, color: "var(--ink-soft)" }}>
+              <p style={{ fontSize: 16, color: "var(--ink-soft)" }}>
                 Couldn't match this to a known issue yet — try adding more
                 detail (e.g. "AC blowing warm", "breaker keeps tripping",
                 "water leaking under sink"). A general script:
