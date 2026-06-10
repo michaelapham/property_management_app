@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   BuildingIcon,
+  GearIcon,
   HomeIcon,
   PeopleIcon,
   ScanIcon,
@@ -21,6 +22,7 @@ const TITLES: Record<string, { title: string; sub?: string }> = {
   "/properties": { title: "Properties" },
   "/contractors": { title: "Contractors" },
   "/scanner": { title: "Receipt Scanner", sub: "Scan & keep records for taxes" },
+  "/settings": { title: "Settings" },
 };
 
 export default function Layout() {
@@ -45,6 +47,14 @@ export default function Layout() {
             {label}
           </NavLink>
         ))}
+        <NavLink
+          to="/settings"
+          className={({ isActive }) => `nav-settings-link${isActive ? " active" : ""}`}
+          aria-label="Settings"
+        >
+          <GearIcon />
+          Settings
+        </NavLink>
       </nav>
       <div className="app-content">
         <header className="top-bar">
@@ -56,6 +66,14 @@ export default function Layout() {
               </h1>
               {head?.sub && <div className="subtitle">{head.sub}</div>}
             </div>
+            <NavLink
+              to="/settings"
+              aria-label="Settings"
+              className="top-bar-settings"
+              style={({ isActive }) => ({ color: isActive ? "var(--brand)" : "var(--ink-soft)" })}
+            >
+              <GearIcon size={21} />
+            </NavLink>
           </div>
         </header>
         <main className="app-main">

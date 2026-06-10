@@ -4,13 +4,14 @@ import { useStore } from "../data/store";
 import {
   currentMonthKey,
   rentStatusOf,
+  type PaymentMethod,
   type RentRecord,
   type RentStatus,
 } from "../types";
 import { fullAddress, money, monthLabel } from "../utils/format";
 import Avatar from "../components/Avatar";
 import NoteModal from "../components/NoteModal";
-import PartialPaymentModal from "../components/PartialPaymentModal";
+import PaymentModal from "../components/PaymentModal";
 import {
   CheckIcon,
   PlusIcon,
@@ -25,12 +26,21 @@ const STATUS_LABEL: Record<RentStatus, string> = {
   unpaid: "Unpaid",
 };
 
+type Row = {
+  tenant: ReturnType<typeof useStore>["data"]["tenants"][number];
+  record: RentRecord;
+  property: ReturnType<typeof useStore>["data"]["properties"][number];
+};
+
 export default function Dashboard() {
-  const { data, recordPayment, undoPayment } = useStore();
+  const { data, recordPayment, undoPayment, addNote } = useStore();
   const navigate = useNavigate();
   const month = currentMonthKey();
 
-  const [partialFor, setPartialFor] = useState<RentRecord | null>(null);
+  const [paymentFor, setPaymentFor] = useState<{
+    row: Row;
+    defaultMode: "full" | "partial";
+  } | null>(null);
   const [noteFor, setNoteFor] = useState<{
     tenantId: string;
     propertyId: string;
@@ -63,27 +73,20 @@ export default function Dashboard() {
     return <Welcome />;
   }
 
-  function markPaid(row: (typeof rows)[number]) {
-    recordPayment(row.record.id, "full");
-    setNoteFor({
-      tenantId: row.tenant.id,
-      propertyId: row.property.id,
-      name: row.tenant.firstName,
-    });
-  }
-
-  function submitPartial(amount: number) {
-    if (!partialFor) return;
-    const row = rows.find((r) => r.record.id === partialFor.id);
-    recordPayment(partialFor.id, amount);
-    setPartialFor(null);
-    if (row) {
-      setNoteFor({
+  function submitPayment(amount: number | "full", method: PaymentMethod, notes: string) {
+    if (!paymentFor) return;
+    const { row } = paymentFor;
+    recordPayment(row.record.id, amount, method, notes.trim() || undefined);
+    if (notes.trim()) {
+      addNote({
         tenantId: row.tenant.id,
         propertyId: row.property.id,
-        name: row.tenant.firstName,
+        date: new Date().toISOString(),
+        text: notes.trim(),
+        tags: ["payment"],
       });
     }
+    setPaymentFor(null);
   }
 
   return (
@@ -154,7 +157,7 @@ export default function Dashboard() {
                   <button
                     className="btn btn-green btn-sm"
                     style={{ flex: 2 }}
-                    onClick={() => markPaid(row)}
+                    onClick={() => setPaymentFor({ row, defaultMode: "full" })}
                   >
                     <CheckIcon size={16} />
                     {status === "partial"
@@ -164,7 +167,7 @@ export default function Dashboard() {
                   <button
                     className="btn btn-ghost btn-sm"
                     style={{ flex: 1.4 }}
-                    onClick={() => setPartialFor(row.record)}
+                    onClick={() => setPaymentFor({ row, defaultMode: "partial" })}
                   >
                     Partial…
                   </button>
@@ -199,13 +202,11 @@ export default function Dashboard() {
       })}
 
       <div className="section-title">
-        <span>Quick actions</span>
+        <span>Quick Actions</span>
       </div>
       <div className="quick-actions">
         <button className="quick-action" onClick={() => navigate("/contractors")}>
-          <span className="qa-icon">
-            <WrenchIcon size={19} />
-          </span>
+          <span className="qa-icon"><WrenchIcon size={19} /></span>
           <span className="qa-label">Call a Contractor</span>
           <span className="qa-sub">Your pros + nearby options</span>
         </button>
@@ -213,16 +214,12 @@ export default function Dashboard() {
           className="quick-action"
           onClick={() => navigate("/contractors/prepare")}
         >
-          <span className="qa-icon">
-            <SparkleIcon size={19} />
-          </span>
+          <span className="qa-icon"><SparkleIcon size={19} /></span>
           <span className="qa-label">Prepare for a Call</span>
           <span className="qa-sub">Script, causes & price guide</span>
         </button>
         <button className="quick-action" onClick={() => navigate("/scanner")}>
-          <span className="qa-icon">
-            <ScanIcon size={19} />
-          </span>
+          <span className="qa-icon"><ScanIcon size={19} /></span>
           <span className="qa-label">Scan a Receipt</span>
           <span className="qa-sub">For tax records</span>
         </button>
@@ -230,22 +227,19 @@ export default function Dashboard() {
           className="quick-action"
           onClick={() => navigate("/properties/new")}
         >
-          <span className="qa-icon">
-            <PlusIcon size={19} />
-          </span>
+          <span className="qa-icon"><PlusIcon size={19} /></span>
           <span className="qa-label">Add a Property</span>
           <span className="qa-sub">House, rent & tenant info</span>
         </button>
       </div>
 
-      {partialFor && (
-        <PartialPaymentModal
-          record={partialFor}
-          tenantName={
-            data.tenants.find((t) => t.id === partialFor.tenantId)?.firstName ?? ""
-          }
-          onSubmit={submitPartial}
-          onClose={() => setPartialFor(null)}
+      {paymentFor && (
+        <PaymentModal
+          record={paymentFor.row.record}
+          tenant={paymentFor.row.tenant}
+          defaultMode={paymentFor.defaultMode}
+          onSubmit={submitPayment}
+          onClose={() => setPaymentFor(null)}
         />
       )}
 
@@ -253,9 +247,7 @@ export default function Dashboard() {
         <NoteModal
           tenantId={noteFor.tenantId}
           propertyId={noteFor.propertyId}
-          title={`Payment recorded ✅ — note about ${noteFor.name}?`}
-          subtitle="Anything notable? Interactions, complaints, air filter replaced, new pet, money's tight… Your future self will thank you."
-          defaultTags={["payment"]}
+          title={`Add a Note — ${noteFor.name}`}
           onClose={() => setNoteFor(null)}
         />
       )}

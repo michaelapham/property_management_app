@@ -676,3 +676,115 @@ a { color: inherit; text-decoration: none; }
 .open-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
 .open-dot.open { background: var(--green); }
 .open-dot.closed { background: var(--red); }
+
+/* ---------- Ledger table ---------- */
+.ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.ledger-table thead tr {
+  background: var(--surface-2);
+  border-bottom: 2px solid var(--line);
+}
+
+.ledger-table th {
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.ledger-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.ledger-table tbody tr:last-child td { border-bottom: none; }
+.ledger-table tbody tr:hover td { background: var(--surface-2); }
+
+.ledger-th-money,
+.ledger-money { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.ledger-th-num,
+.ledger-num { text-align: center; color: var(--ink-faint); width: 32px; }
+
+.ledger-th-notes { min-width: 120px; }
+
+.ledger-date { white-space: nowrap; color: var(--ink-soft); }
+.ledger-method { white-space: nowrap; font-size: 13px; color: var(--ink-soft); }
+.ledger-notes { font-size: 13px; color: var(--ink-soft); max-width: 180px; }
+.ledger-paid { color: var(--green); font-weight: 650; }
+.ledger-owed { color: var(--red); font-weight: 650; }
+.ledger-clear { color: var(--green); font-weight: 650; }
+.ledger-credit { color: var(--brand); font-weight: 650; }
+
+/* ---------- Export dropdown menu ---------- */
+.export-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 100;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  min-width: 200px;
+  box-shadow: var(--shadow-lift);
+}
+
+.export-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 12px 15px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+
+.export-menu-item:last-child { border-bottom: none; }
+.export-menu-item:hover { background: var(--accent-bg); color: var(--brand); }
+
+/* ---------- Settings nav link (desktop sidebar only) ---------- */
+.nav-settings-link {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .nav-settings-link {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    color: var(--ink-faint);
+    margin-top: auto;
+    transition: color 0.15s;
+  }
+  .nav-settings-link.active { color: var(--brand); background: var(--accent-bg); }
+  .nav-settings-link:hover:not(.active) { background: var(--surface-2); color: var(--ink-soft); }
+  .nav-settings-link svg { width: 23px; height: 23px; }
+}
+
+/* Settings gear icon in top-bar (mobile) */
+.top-bar-settings {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+@media (min-width: 900px) {
+  /* Hide the top-bar gear on desktop since sidebar has it */
+  .top-bar-settings { display: none; }
+}

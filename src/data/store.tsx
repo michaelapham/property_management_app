@@ -9,8 +9,11 @@ import {
 } from "react";
 import {
   type AppData,
+  type AppSettings,
   type Contractor,
+  type LedgerEntry,
   type Note,
+  type PaymentMethod,
   type Property,
   type Receipt,
   type RentRecord,
@@ -27,12 +30,12 @@ const EMPTY: AppData = {
   notes: [],
   contractors: [],
   receipts: [],
+  ledgerEntries: [],
+  settings: { landlordName: "" },
 };
 
 export function uid(): string {
-  return (
-    Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-  );
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
 function load(): AppData {
@@ -40,18 +43,22 @@ function load(): AppData {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as Partial<AppData>;
-    return { ...EMPTY, ...parsed };
+    return {
+      ...EMPTY,
+      ...parsed,
+      // Ensure new top-level keys exist for old stored data
+      ledgerEntries: parsed.ledgerEntries ?? [],
+      settings: parsed.settings ?? { landlordName: "" },
+    };
   } catch {
     return EMPTY;
   }
 }
 
-/** Ensure every tenant has a rent record for the current month. */
 function ensureCurrentMonthRecords(data: AppData): AppData {
   const month = currentMonthKey();
   const missing = data.tenants.filter(
-    (t) =>
-      !data.rentRecords.some((r) => r.tenantId === t.id && r.month === month)
+    (t) => !data.rentRecords.some((r) => r.tenantId === t.id && r.month === month)
   );
   if (missing.length === 0) return data;
   const newRecords: RentRecord[] = missing.map((t) => ({
@@ -72,7 +79,12 @@ interface StoreApi {
   addTenant: (t: Omit<Tenant, "id" | "createdAt">) => Tenant;
   updateTenant: (id: string, patch: Partial<Tenant>) => void;
   removeTenant: (id: string) => void;
-  recordPayment: (rentRecordId: string, amount: number | "full") => void;
+  recordPayment: (
+    rentRecordId: string,
+    amount: number | "full",
+    method?: PaymentMethod,
+    notes?: string
+  ) => void;
   undoPayment: (rentRecordId: string) => void;
   addNote: (n: Omit<Note, "id">) => void;
   addContractor: (c: Omit<Contractor, "id">) => void;
@@ -80,6 +92,7 @@ interface StoreApi {
   removeContractor: (id: string) => void;
   addReceipt: (r: Omit<Receipt, "id">) => void;
   removeReceipt: (id: string) => void;
+  updateSettings: (patch: Partial<AppSettings>) => void;
 }
 
 const StoreContext = createContext<StoreApi | null>(null);
@@ -93,18 +106,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
-      // Storage full (likely large photos) — drop receipt images last resort.
       console.warn("localStorage write failed; data may exceed quota");
     }
   }, [data]);
 
   const addProperty = useCallback(
     (p: Omit<Property, "id" | "createdAt">): Property => {
-      const prop: Property = {
-        ...p,
-        id: uid(),
-        createdAt: new Date().toISOString(),
-      };
+      const prop: Property = { ...p, id: uid(), createdAt: new Date().toISOString() };
       setData((d) => ({ ...d, properties: [...d.properties, prop] }));
       return prop;
     },
@@ -120,9 +128,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const removeProperty = useCallback((id: string) => {
     setData((d) => {
-      const tenantIds = d.tenants
-        .filter((t) => t.propertyId === id)
-        .map((t) => t.id);
+      const tenantIds = d.tenants.filter((t) => t.propertyId === id).map((t) => t.id);
       return {
         ...d,
         properties: d.properties.filter((p) => p.id !== id),
@@ -131,16 +137,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         notes: d.notes.filter(
           (n) => n.propertyId !== id && !(n.tenantId && tenantIds.includes(n.tenantId))
         ),
+        ledgerEntries: d.ledgerEntries.filter((e) => e.propertyId !== id),
       };
     });
   }, []);
 
   const addTenant = useCallback((t: Omit<Tenant, "id" | "createdAt">): Tenant => {
-    const tenant: Tenant = {
-      ...t,
-      id: uid(),
-      createdAt: new Date().toISOString(),
-    };
+    const tenant: Tenant = { ...t, id: uid(), createdAt: new Date().toISOString() };
     const record: RentRecord = {
       id: uid(),
       tenantId: tenant.id,
@@ -160,13 +163,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setData((d) => ({
       ...d,
       tenants: d.tenants.map((t) => (t.id === id ? { ...t, ...patch } : t)),
-      // Keep the current month's amount due in sync if rent changed and nothing paid yet
       rentRecords:
         patch.rentAmount !== undefined
           ? d.rentRecords.map((r) =>
-              r.tenantId === id &&
-              r.month === currentMonthKey() &&
-              r.amountPaid === 0
+              r.tenantId === id && r.month === currentMonthKey() && r.amountPaid === 0
                 ? { ...r, amountDue: patch.rentAmount! }
                 : r
             )
@@ -180,24 +180,51 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       tenants: d.tenants.filter((t) => t.id !== id),
       rentRecords: d.rentRecords.filter((r) => r.tenantId !== id),
       notes: d.notes.filter((n) => n.tenantId !== id),
+      ledgerEntries: d.ledgerEntries.filter((e) => e.tenantId !== id),
     }));
   }, []);
 
   const recordPayment = useCallback(
-    (rentRecordId: string, amount: number | "full") => {
-      setData((d) => ({
-        ...d,
-        rentRecords: d.rentRecords.map((r) => {
-          if (r.id !== rentRecordId) return r;
-          const paid =
-            amount === "full" ? r.amountDue : Math.max(0, r.amountPaid + amount);
-          return {
-            ...r,
-            amountPaid: Math.min(paid, r.amountDue),
-            paidDate: new Date().toISOString(),
-          };
-        }),
-      }));
+    (
+      rentRecordId: string,
+      amount: number | "full",
+      method: PaymentMethod = "other",
+      notes?: string
+    ) => {
+      setData((d) => {
+        const rec = d.rentRecords.find((r) => r.id === rentRecordId);
+        if (!rec) return d;
+
+        const newAmountPaid =
+          amount === "full"
+            ? rec.amountDue
+            : Math.min(rec.amountDue, rec.amountPaid + (amount as number));
+        const delta = newAmountPaid - rec.amountPaid;
+        if (delta <= 0) return d;
+
+        const tenant = d.tenants.find((t) => t.id === rec.tenantId);
+        const entry: LedgerEntry = {
+          id: uid(),
+          tenantId: rec.tenantId,
+          propertyId: tenant?.propertyId ?? "",
+          rentRecordId,
+          date: new Date().toISOString(),
+          month: rec.month,
+          amountPaid: delta,
+          paymentMethod: method,
+          notes: notes?.trim() || undefined,
+        };
+
+        return {
+          ...d,
+          rentRecords: d.rentRecords.map((r) =>
+            r.id === rentRecordId
+              ? { ...r, amountPaid: newAmountPaid, paidDate: new Date().toISOString() }
+              : r
+          ),
+          ledgerEntries: [...d.ledgerEntries, entry],
+        };
+      });
     },
     []
   );
@@ -208,20 +235,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       rentRecords: d.rentRecords.map((r) =>
         r.id === rentRecordId ? { ...r, amountPaid: 0, paidDate: undefined } : r
       ),
+      ledgerEntries: d.ledgerEntries.filter((e) => e.rentRecordId !== rentRecordId),
     }));
   }, []);
 
   const addNote = useCallback((n: Omit<Note, "id">) => {
     setData((d) => {
       let next: AppData = { ...d, notes: [{ ...n, id: uid() }, ...d.notes] };
-      // Smart tags update structured records automatically
       if (n.tags.includes("air-filter") && n.propertyId) {
         next = {
           ...next,
           properties: next.properties.map((p) =>
-            p.id === n.propertyId
-              ? { ...p, airFilterLastReplaced: n.date }
-              : p
+            p.id === n.propertyId ? { ...p, airFilterLastReplaced: n.date } : p
           ),
         };
       }
@@ -241,17 +266,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setData((d) => ({ ...d, contractors: [...d.contractors, { ...c, id: uid() }] }));
   }, []);
 
-  const updateContractor = useCallback(
-    (id: string, patch: Partial<Contractor>) => {
-      setData((d) => ({
-        ...d,
-        contractors: d.contractors.map((c) =>
-          c.id === id ? { ...c, ...patch } : c
-        ),
-      }));
-    },
-    []
-  );
+  const updateContractor = useCallback((id: string, patch: Partial<Contractor>) => {
+    setData((d) => ({
+      ...d,
+      contractors: d.contractors.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    }));
+  }, []);
 
   const removeContractor = useCallback((id: string) => {
     setData((d) => ({
@@ -266,6 +286,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const removeReceipt = useCallback((id: string) => {
     setData((d) => ({ ...d, receipts: d.receipts.filter((r) => r.id !== id) }));
+  }, []);
+
+  const updateSettings = useCallback((patch: Partial<AppSettings>) => {
+    setData((d) => ({ ...d, settings: { ...d.settings, ...patch } }));
   }, []);
 
   const api = useMemo<StoreApi>(
@@ -285,6 +309,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeContractor,
       addReceipt,
       removeReceipt,
+      updateSettings,
     }),
     [
       data,
@@ -302,6 +327,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeContractor,
       addReceipt,
       removeReceipt,
+      updateSettings,
     ]
   );
 

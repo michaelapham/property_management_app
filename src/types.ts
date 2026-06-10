@@ -25,7 +25,6 @@ export type FenceType =
 
 export interface Property {
   id: string;
-  /** Full street address line, e.g. "412 Maple Ave" */
   street: string;
   city: string;
   state: string;
@@ -41,7 +40,6 @@ export interface Property {
   fence: FenceType;
   valueEstimate?: number;
   prevYearTaxValue?: number;
-  /** ISO date string of last air filter replacement, set automatically from notes */
   airFilterLastReplaced?: string;
   createdAt: string;
 }
@@ -57,9 +55,9 @@ export interface Tenant {
   phone?: string;
   emergencyContactName?: string;
   emergencyContactPhone?: string;
-  /** Pet on file requiring a fee — set automatically from "New pet" notes */
   petOnFile?: boolean;
   moveInDate?: string;
+  leaseEndDate?: string;
   createdAt: string;
 }
 
@@ -68,7 +66,6 @@ export type RentStatus = "paid" | "partial" | "unpaid";
 export interface RentRecord {
   id: string;
   tenantId: string;
-  /** Month key, "YYYY-MM" */
   month: string;
   amountDue: number;
   amountPaid: number;
@@ -124,6 +121,35 @@ export interface Receipt {
   propertyId?: string;
 }
 
+export type PaymentMethod = "cash" | "check" | "venmo" | "zelle" | "other";
+
+export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
+  cash: "Cash",
+  check: "Check",
+  venmo: "Venmo",
+  zelle: "Zelle",
+  other: "Other",
+};
+
+export interface LedgerEntry {
+  id: string;
+  tenantId: string;
+  propertyId: string;
+  rentRecordId: string;
+  /** ISO timestamp — when the payment was recorded */
+  date: string;
+  /** YYYY-MM — which rent period this payment applies to */
+  month: string;
+  /** Actual dollars received in this single transaction */
+  amountPaid: number;
+  paymentMethod: PaymentMethod;
+  notes?: string;
+}
+
+export interface AppSettings {
+  landlordName: string;
+}
+
 export interface AppData {
   properties: Property[];
   tenants: Tenant[];
@@ -131,6 +157,8 @@ export interface AppData {
   notes: Note[];
   contractors: Contractor[];
   receipts: Receipt[];
+  ledgerEntries: LedgerEntry[];
+  settings: AppSettings;
 }
 
 export function rentStatusOf(r: RentRecord): RentStatus {

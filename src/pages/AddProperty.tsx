@@ -57,6 +57,8 @@ export default function AddProperty() {
   const [emName, setEmName] = useState("");
   const [emPhone, setEmPhone] = useState("");
   const [tenantPhoto, setTenantPhoto] = useState<string | undefined>();
+  const [leaseStart, setLeaseStart] = useState("");
+  const [leaseEnd, setLeaseEnd] = useState("");
 
   useEffect(() => {
     window.clearTimeout(debounceRef.current);
@@ -127,6 +129,8 @@ export default function AddProperty() {
         emergencyContactName: emName.trim() || undefined,
         emergencyContactPhone: emPhone.trim() || undefined,
         photoDataUrl: tenantPhoto,
+        moveInDate: leaseStart ? new Date(leaseStart).toISOString() : undefined,
+        leaseEndDate: leaseEnd ? new Date(leaseEnd).toISOString() : undefined,
       });
     }
     navigate("/");
@@ -364,6 +368,16 @@ export default function AddProperty() {
                 <div className="field">
                   <label>Emergency phone</label>
                   <input inputMode="tel" value={emPhone} onChange={(e) => setEmPhone(e.target.value)} placeholder="(555) …" />
+                </div>
+              </div>
+              <div className="field-row">
+                <div className="field">
+                  <label>Lease Start (Optional)</label>
+                  <input type="date" value={leaseStart} onChange={(e) => setLeaseStart(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Lease End (Optional)</label>
+                  <input type="date" value={leaseEnd} onChange={(e) => setLeaseEnd(e.target.value)} />
                 </div>
               </div>
               <PhotoField label="Tenant photo (optional)" value={tenantPhoto} onChange={setTenantPhoto} />

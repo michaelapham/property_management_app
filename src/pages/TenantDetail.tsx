@@ -6,14 +6,19 @@ import { fullAddress, money, monthLabel, shortDate } from "../utils/format";
 import Avatar from "../components/Avatar";
 import CallButton from "../components/CallButton";
 import NoteModal from "../components/NoteModal";
-import { ChevronLeft, PlusIcon, TrashIcon } from "../components/icons";
+import { BookIcon, ChevronLeft, PlusIcon, TrashIcon } from "../components/icons";
 
 export default function TenantDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data, removeTenant } = useStore();
+  const { data, removeTenant, updateTenant } = useStore();
   const [showNote, setShowNote] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Lease date editing
+  const [editingLease, setEditingLease] = useState(false);
+  const [leaseStart, setLeaseStart] = useState("");
+  const [leaseEnd, setLeaseEnd] = useState("");
 
   const tenant = data.tenants.find((t) => t.id === id);
   if (!tenant) {
@@ -34,6 +39,24 @@ export default function TenantDetail() {
   const history = data.rentRecords
     .filter((r) => r.tenantId === tenant.id)
     .sort((a, b) => b.month.localeCompare(a.month));
+
+  function openLeaseEdit() {
+    setLeaseStart(
+      tenant!.moveInDate ? new Date(tenant!.moveInDate).toISOString().slice(0, 10) : ""
+    );
+    setLeaseEnd(
+      tenant!.leaseEndDate ? new Date(tenant!.leaseEndDate).toISOString().slice(0, 10) : ""
+    );
+    setEditingLease(true);
+  }
+
+  function saveLease() {
+    updateTenant(tenant!.id, {
+      moveInDate: leaseStart ? new Date(leaseStart).toISOString() : undefined,
+      leaseEndDate: leaseEnd ? new Date(leaseEnd).toISOString() : undefined,
+    });
+    setEditingLease(false);
+  }
 
   return (
     <>
@@ -71,6 +94,12 @@ export default function TenantDetail() {
             </span>
           )}
         </div>
+        {/* View Ledger button */}
+        <div style={{ marginTop: 12 }}>
+          <Link to={`/tenants/${tenant.id}/ledger`} className="btn btn-ghost btn-sm">
+            <BookIcon size={15} /> View Ledger
+          </Link>
+        </div>
       </div>
 
       <div className="card" style={{ marginTop: 12 }}>
@@ -87,9 +116,7 @@ export default function TenantDetail() {
                   <a href={`mailto:${tenant.email}`} style={{ color: "var(--green)" }}>
                     {tenant.email}
                   </a>
-                ) : (
-                  "—"
-                )}
+                ) : "—"}
               </td>
             </tr>
             <tr>
@@ -120,12 +147,67 @@ export default function TenantDetail() {
         </div>
       </div>
 
+      {/* Lease dates */}
       <div className="section-title">
-        <span>Notes & history</span>
-        <button
-          className="btn btn-ghost btn-sm"
-          onClick={() => setShowNote(true)}
-        >
+        <span>Lease Dates</span>
+        {!editingLease && (
+          <button className="btn btn-ghost btn-sm" onClick={openLeaseEdit}>
+            Edit
+          </button>
+        )}
+      </div>
+      <div className="card">
+        {editingLease ? (
+          <>
+            <div className="field-row">
+              <div className="field">
+                <label>Lease Start</label>
+                <input
+                  type="date"
+                  value={leaseStart}
+                  onChange={(e) => setLeaseStart(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label>Lease End</label>
+                <input
+                  type="date"
+                  value={leaseEnd}
+                  onChange={(e) => setLeaseEnd(e.target.value)}
+                />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setEditingLease(false)}
+              >
+                Cancel
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={saveLease}>
+                Save
+              </button>
+            </div>
+          </>
+        ) : (
+          <table className="kv-table">
+            <tbody>
+              <tr>
+                <td>Lease start</td>
+                <td>{shortDate(tenant.moveInDate)}</td>
+              </tr>
+              <tr>
+                <td>Lease end</td>
+                <td>{tenant.leaseEndDate ? shortDate(tenant.leaseEndDate) : "Ongoing"}</td>
+              </tr>
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="section-title">
+        <span>Notes & History</span>
+        <button className="btn btn-ghost btn-sm" onClick={() => setShowNote(true)}>
           <PlusIcon size={14} /> Note
         </button>
       </div>
@@ -150,7 +232,7 @@ export default function TenantDetail() {
       </div>
 
       <div className="section-title">
-        <span>Rent history</span>
+        <span>Rent History</span>
       </div>
       <div className="card">
         <table className="kv-table">
@@ -174,12 +256,18 @@ export default function TenantDetail() {
 
       <div style={{ marginTop: 20 }}>
         {!confirmDelete ? (
-          <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(true)}>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => setConfirmDelete(true)}
+          >
             <TrashIcon size={15} /> Remove Tenant
           </button>
         ) : (
           <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(false)}>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => setConfirmDelete(false)}
+            >
               Cancel
             </button>
             <button
