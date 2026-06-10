@@ -28,6 +28,11 @@ export default function AddProperty() {
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<number>();
+  // True right after a suggestion is picked — suppresses the search effect
+  // so the dropdown doesn't reopen; cleared on the next keystroke.
+  const suggestionAppliedRef = useRef(false);
+  const cityRef = useRef<HTMLInputElement>(null);
+  const continueRef = useRef<HTMLButtonElement>(null);
 
   // Step 2 — property details
   const [photo, setPhoto] = useState<string | undefined>();
@@ -55,6 +60,11 @@ export default function AddProperty() {
 
   useEffect(() => {
     window.clearTimeout(debounceRef.current);
+    if (suggestionAppliedRef.current) {
+      // Field values changed because a suggestion was applied, not because
+      // the user is typing — don't search, keep the dropdown closed.
+      return;
+    }
     if (street.trim().length < 4) {
       setSuggestions([]);
       return;
@@ -70,11 +80,17 @@ export default function AddProperty() {
   }, [street, city]);
 
   function applySuggestion(s: AddressSuggestion) {
+    suggestionAppliedRef.current = true;
     setStreet(s.street);
     setCity(s.city);
     setStateVal(s.state);
     setZip(s.zip);
     setSuggestions([]);
+    setSearching(false);
+    // Move focus forward: to City if the suggestion lacked one, otherwise
+    // to Continue — never back to the street input.
+    if (!s.city) cityRef.current?.focus();
+    else continueRef.current?.focus();
   }
 
   function num(v: string): number | undefined {
@@ -152,7 +168,10 @@ export default function AddProperty() {
               autoFocus
               placeholder="Start typing… e.g. 412 Maple Ave"
               value={street}
-              onChange={(e) => setStreet(e.target.value)}
+              onChange={(e) => {
+                suggestionAppliedRef.current = false;
+                setStreet(e.target.value);
+              }}
               autoComplete="street-address"
             />
             {suggestions.length > 0 && (
@@ -169,9 +188,13 @@ export default function AddProperty() {
           <div className="field">
             <label>City</label>
             <input
+              ref={cityRef}
               placeholder="City"
               value={city}
-              onChange={(e) => setCity(e.target.value)}
+              onChange={(e) => {
+                suggestionAppliedRef.current = false;
+                setCity(e.target.value);
+              }}
               autoComplete="address-level2"
             />
           </div>
@@ -197,6 +220,7 @@ export default function AddProperty() {
             </div>
           </div>
           <button
+            ref={continueRef}
             className="btn btn-primary btn-block"
             disabled={!addressValid}
             onClick={() => setStep(1)}
