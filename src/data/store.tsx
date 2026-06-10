@@ -175,13 +175,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const removeTenant = useCallback((id: string) => {
-    setData((d) => ({
-      ...d,
-      tenants: d.tenants.filter((t) => t.id !== id),
-      rentRecords: d.rentRecords.filter((r) => r.tenantId !== id),
-      notes: d.notes.filter((n) => n.tenantId !== id),
-      ledgerEntries: d.ledgerEntries.filter((e) => e.tenantId !== id),
-    }));
+    setData((d) => {
+      const tenant = d.tenants.find((t) => t.id === id);
+      const remainingForProperty = d.tenants.filter(
+        (t) => t.id !== id && t.propertyId === tenant?.propertyId
+      );
+      const properties =
+        tenant && remainingForProperty.length === 0
+          ? d.properties.map((p) =>
+              p.id === tenant.propertyId
+                ? { ...p, lastOccupiedDate: new Date().toISOString() }
+                : p
+            )
+          : d.properties;
+      return {
+        ...d,
+        properties,
+        tenants: d.tenants.filter((t) => t.id !== id),
+        rentRecords: d.rentRecords.filter((r) => r.tenantId !== id),
+        notes: d.notes.filter((n) => n.tenantId !== id),
+        ledgerEntries: d.ledgerEntries.filter((e) => e.tenantId !== id),
+      };
+    });
   }, []);
 
   const recordPayment = useCallback(

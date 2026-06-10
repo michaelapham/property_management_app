@@ -138,3 +138,9 @@ export const DownloadIcon = ({ size }: IconProps) => (
     <line x1="12" y1="15" x2="12" y2="3" />
   </svg>
 );
+
+export const MenuIcon = ({ size }: IconProps) => (
+  <svg {...svgProps(size)}>
+    <path d="M3 6h18M3 12h18M3 18h18" />
+  </svg>
+);

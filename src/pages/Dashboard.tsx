@@ -5,8 +5,10 @@ import {
   currentMonthKey,
   rentStatusOf,
   type PaymentMethod,
+  type Property,
   type RentRecord,
   type RentStatus,
+  type Tenant,
 } from "../types";
 import { fullAddress, money, monthLabel } from "../utils/format";
 import Avatar from "../components/Avatar";
@@ -32,8 +34,20 @@ type Row = {
   property: ReturnType<typeof useStore>["data"]["properties"][number];
 };
 
+type PropStatus = "occupied" | "vacant" | "pending";
+
+function propStatusOf(property: Property, tenants: Tenant[]): PropStatus {
+  if (property.propertyStatus === "pending") return "pending";
+  return tenants.some((t) => t.propertyId === property.id) ? "occupied" : "vacant";
+}
+
+function daysSince(isoDate?: string): number {
+  if (!isoDate) return 0;
+  return Math.floor((Date.now() - new Date(isoDate).getTime()) / 86400000);
+}
+
 export default function Dashboard() {
-  const { data, recordPayment, undoPayment, addNote } = useStore();
+  const { data, recordPayment, undoPayment, addNote, updateProperty } = useStore();
   const navigate = useNavigate();
   const month = currentMonthKey();
 
@@ -46,6 +60,7 @@ export default function Dashboard() {
     propertyId: string;
     name: string;
   } | null>(null);
+  const [statusMenuId, setStatusMenuId] = useState<string | null>(null);
 
   const rows = useMemo(() => {
     return data.tenants
@@ -232,6 +247,67 @@ export default function Dashboard() {
           <span className="qa-sub">House, rent & tenant info</span>
         </button>
       </div>
+
+      <div className="section-title">
+        <span>Properties</span>
+      </div>
+      {data.properties.map((property) => {
+        const status = propStatusOf(property, data.tenants);
+        const isMenuOpen = statusMenuId === property.id;
+        const tenant = data.tenants.find((t) => t.propertyId === property.id);
+        const days = status === "vacant" ? daysSince(property.lastOccupiedDate) : null;
+        return (
+          <div key={property.id} className="card" style={{ marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="row-title" style={{ fontSize: 16 }}>{property.street}</div>
+                <div className="row-sub">{property.city}, {property.state}</div>
+                {tenant && (
+                  <div style={{ fontSize: 14, color: "var(--ink-soft)", marginTop: 2 }}>
+                    {tenant.firstName} {tenant.lastName}
+                  </div>
+                )}
+              </div>
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                <button
+                  className={`status-badge status-badge-${status}`}
+                  onClick={() => setStatusMenuId(isMenuOpen ? null : property.id)}
+                >
+                  <span className={`status-dot dot-${status}`} />
+                  {status === "occupied" && "Occupied"}
+                  {status === "vacant" && (days && days > 0 ? `Vacant · ${days}d` : "Vacant")}
+                  {status === "pending" && "Pending"}
+                </button>
+                {isMenuOpen && (
+                  <div className="status-menu">
+                    {status !== "pending" ? (
+                      <button
+                        className="status-menu-item"
+                        onClick={() => {
+                          updateProperty(property.id, { propertyStatus: "pending" });
+                          setStatusMenuId(null);
+                        }}
+                      >
+                        Set Pending
+                      </button>
+                    ) : (
+                      <button
+                        className="status-menu-item"
+                        onClick={() => {
+                          updateProperty(property.id, { propertyStatus: undefined });
+                          setStatusMenuId(null);
+                        }}
+                      >
+                        Clear Pending
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
 
       {paymentFor && (
         <PaymentModal

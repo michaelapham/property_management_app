@@ -777,14 +777,160 @@ a { color: inherit; text-decoration: none; }
   .nav-settings-link svg { width: 23px; height: 23px; }
 }
 
-/* Settings gear icon in top-bar (mobile) */
-.top-bar-settings {
+/* Hamburger menu button in top-bar */
+.top-bar-menu-btn {
   display: flex;
   align-items: center;
   padding: 4px;
+  color: var(--ink-soft);
+  flex-shrink: 0;
 }
 
-@media (min-width: 900px) {
-  /* Hide the top-bar gear on desktop since sidebar has it */
-  .top-bar-settings { display: none; }
+/* ---------- Right slide-in drawer ---------- */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.55);
+  animation: fadeIn 0.15s ease;
 }
+
+.drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(320px, 88vw);
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  animation: slideInRight 0.22s ease;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.drawer-back {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--brand);
+  margin-right: auto;
+}
+
+.drawer-close {
+  font-size: 18px;
+  color: var(--ink-soft);
+  padding: 4px 8px;
+}
+
+.drawer-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 17px 20px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+
+.drawer-item:hover { background: var(--surface-2); }
+
+.drawer-content {
+  padding: 20px;
+  flex: 1;
+}
+
+.drawer-textarea {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+  resize: vertical;
+  min-height: 120px;
+  outline: none;
+}
+
+.drawer-textarea::placeholder { color: var(--ink-faint); }
+.drawer-textarea:focus { border-color: var(--brand); }
+
+.drawer-version {
+  padding: 16px 20px;
+  font-size: 13px;
+  color: var(--ink-faint);
+  margin-top: auto;
+  border-top: 1px solid var(--line);
+}
+
+/* ---------- Property status badges ---------- */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.status-badge:active { opacity: 0.75; }
+
+.status-badge-occupied { background: var(--green-bg); color: var(--green); }
+.status-badge-vacant { background: var(--red-bg); color: var(--red); }
+.status-badge-pending { background: var(--yellow-bg); color: var(--yellow); }
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-occupied { background: var(--green); }
+.dot-vacant { background: var(--red); }
+.dot-pending { background: var(--yellow); }
+
+.status-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  min-width: 150px;
+  box-shadow: var(--shadow-lift);
+}
+
+.status-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 12px 15px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.status-menu-item:hover { background: var(--accent-bg); color: var(--brand); }

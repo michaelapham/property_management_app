@@ -41,6 +41,8 @@ export interface Property {
   valueEstimate?: number;
   prevYearTaxValue?: number;
   airFilterLastReplaced?: string;
+  propertyStatus?: "pending";
+  lastOccupiedDate?: string;
   createdAt: string;
 }
 

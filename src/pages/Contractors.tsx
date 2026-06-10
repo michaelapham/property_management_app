@@ -188,7 +188,10 @@ function NearbyCard({
   contractor: NearbyContractor;
   onSave: () => void;
 }) {
-  const [saved, setSaved] = useState(false);
+  const { data } = useStore();
+  const isSaved = data.contractors.some(
+    (s) => s.phone === c.phone && s.trade === c.trade
+  );
   return (
     <div className="card" style={{ marginBottom: 10 }}>
       <div className="row-title">{c.name}</div>
@@ -223,13 +226,10 @@ function NearbyCard({
         <button
           className="btn btn-ghost btn-sm"
           style={{ flex: 1 }}
-          disabled={saved}
-          onClick={() => {
-            onSave();
-            setSaved(true);
-          }}
+          disabled={isSaved}
+          onClick={onSave}
         >
-          {saved ? "Saved ✓" : "Save"}
+          {isSaved ? "Saved ✓" : "Save"}
         </button>
       </div>
     </div>
