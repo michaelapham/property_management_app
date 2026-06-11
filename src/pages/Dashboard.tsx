@@ -337,7 +337,7 @@ export default function Dashboard() {
       </div>
 
       {showKpi ? (
-        <KpiDashboard rows={rows} />
+        <KpiDashboard rows={rows} data={data} rosters={rosters} />
       ) : (
         <>
 
@@ -513,7 +513,282 @@ export default function Dashboard() {
   );
 }
 
-function KpiDashboard({ rows }: { rows: Row[] }) {
+// ── Donut Chart ──────────────────────────────────────────────────────────────
+
+function DonutChart({ pct }: { pct: number }) {
+  const SIZE = 180;
+  const STROKE = 16;
+  const R = (SIZE - STROKE) / 2;
+  const CIRC = 2 * Math.PI * R;
+  const cx = SIZE / 2;
+  const cy = SIZE / 2;
+
+  const [animPct, setAnimPct] = useState(0);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setAnimPct(pct));
+    return () => cancelAnimationFrame(raf);
+  }, [pct]);
+
+  const dash = (animPct / 100) * CIRC;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", marginBottom: 16 }}>
+      <svg width={SIZE} height={SIZE} style={{ overflow: "visible" }}>
+        {/* track */}
+        <circle
+          cx={cx} cy={cy} r={R}
+          fill="none"
+          stroke="#E5E7EB"
+          strokeWidth={STROKE}
+        />
+        {/* filled arc — starts from 12 o'clock */}
+        <circle
+          cx={cx} cy={cy} r={R}
+          fill="none"
+          stroke="#16A34A"
+          strokeWidth={STROKE}
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${CIRC}`}
+          strokeDashoffset={CIRC / 4}
+          style={{ transition: "stroke-dasharray 0.8s ease-in-out" }}
+        />
+        {/* center text */}
+        <text
+          x={cx} y={cy - 8}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize={36}
+          fontWeight={700}
+          fill="#15803D"
+          fontFamily="inherit"
+        >
+          {pct}%
+        </text>
+        <text
+          x={cx} y={cy + 20}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize={13}
+          fill="#6B7280"
+          fontFamily="inherit"
+        >
+          collected
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+// ── Revenue Bar ───────────────────────────────────────────────────────────────
+
+function RevenueBar({ collected, outstanding, expected }: { collected: number; outstanding: number; expected: number }) {
+  const fmt = (n: number) =>
+    "$" + n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+  const [animated, setAnimated] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setAnimated(true), 30);
+    return () => clearTimeout(t);
+  }, []);
+
+  const collectedPct = expected > 0 ? (collected / expected) * 100 : 0;
+  const outstandingPct = expected > 0 ? (outstanding / expected) * 100 : 0;
+
+  // Labels show inside if segment wide enough (>22%), otherwise outside
+  const collectedInside = collectedPct > 22;
+  const outstandingInside = outstandingPct > 22;
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      {/* Outside labels (shown when segment too narrow for inside text) */}
+      {(!collectedInside || !outstandingInside) && (
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+          {!collectedInside && (
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#16A34A" }}>
+              {fmt(collected)} collected
+            </span>
+          )}
+          {!outstandingInside && (
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#DC2626", marginLeft: "auto" }}>
+              {fmt(outstanding)} outstanding
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Bar */}
+      <div style={{
+        display: "flex",
+        height: 36,
+        borderRadius: 99,
+        overflow: "hidden",
+        background: "#E5E7EB",
+      }}>
+        {/* Collected segment */}
+        <div style={{
+          width: animated ? `${collectedPct}%` : "0%",
+          background: "#16A34A",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+          transition: "width 0.6s ease-out",
+          flexShrink: 0,
+        }}>
+          {collectedInside && (
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", padding: "0 10px" }}>
+              {fmt(collected)} collected
+            </span>
+          )}
+        </div>
+        {/* Outstanding segment */}
+        <div style={{
+          width: animated ? `${outstandingPct}%` : "0%",
+          background: "#DC2626",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+          transition: "width 0.6s ease-out 0.05s",
+          flexShrink: 0,
+        }}>
+          {outstandingInside && (
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", padding: "0 10px" }}>
+              {fmt(outstanding)} outstanding
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 5, fontSize: 12, color: "var(--ink-soft)" }}>
+        Expected: {fmt(expected)} total
+      </div>
+    </div>
+  );
+}
+
+// ── Streak Counter ────────────────────────────────────────────────────────────
+
+function computeStreak(data: AppData, rosters: Record<string, RosterEntry[]>): number {
+  const now = currentMonthKey();
+  let streak = 0;
+  let month = now;
+
+  while (true) {
+    // Get roster for this month
+    const [y, m] = month.split("-").map(Number);
+    const prevDate = new Date(y, m - 2);
+    const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
+
+    let entries: RosterEntry[];
+    if (month < now && rosters[month]) {
+      entries = rosters[month];
+    } else if (month <= now) {
+      entries = buildRosterFromLive(data);
+    } else {
+      break;
+    }
+
+    if (entries.length === 0) break;
+
+    const allPaid = entries.every((entry) => {
+      const record = data.rentRecords.find((r) => r.tenantId === entry.id && r.month === month);
+      if (!record) return false;
+      return rentStatusOf(record) === "paid";
+    });
+
+    if (!allPaid) break;
+    streak++;
+    month = prevMonth;
+
+    // Safety: don't go back more than 5 years
+    if (streak > 60) break;
+  }
+
+  return streak;
+}
+
+function StreakCounter({ data, rosters, unitsRemaining }: {
+  data: AppData;
+  rosters: Record<string, RosterEntry[]>;
+  unitsRemaining: number;
+}) {
+  const streak = computeStreak(data, rosters);
+  const now = currentMonthKey();
+
+  // Check if current month alone is 100%
+  const currentEntries = buildRosterFromLive(data);
+  const currentMonthPerfect = currentEntries.length > 0 && currentEntries.every((entry) => {
+    const record = data.rentRecords.find((r) => r.tenantId === entry.id && r.month === now);
+    return record && rentStatusOf(record) === "paid";
+  });
+
+  const cardBase = {
+    borderRadius: 16,
+    padding: "16px 18px",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+  };
+
+  if (streak >= 2) {
+    return (
+      <div style={{ ...cardBase, background: "#F0FDF4" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 32, lineHeight: 1 }}>🔥</span>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "#15803D" }}>
+              {streak}-month perfect collection streak!
+            </div>
+            <div style={{ fontSize: 13, color: "#166534", marginTop: 2 }}>
+              Every tenant paid on time for {streak} months in a row.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (streak === 1 || currentMonthPerfect) {
+    return (
+      <div style={{ ...cardBase, background: "#F0FDF4" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 28, lineHeight: 1 }}>✅</span>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#15803D" }}>
+              Perfect month so far!
+            </div>
+            <div style={{ fontSize: 13, color: "#166534", marginTop: 2 }}>
+              Keep it up to build a streak next month.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ ...cardBase, background: "#fff" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ fontSize: 26, lineHeight: 1 }}>📅</span>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>
+            {unitsRemaining} unit{unitsRemaining !== 1 ? "s" : ""} remaining
+          </div>
+          <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 2 }}>
+            Complete this month to start a streak
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── KPI Dashboard ─────────────────────────────────────────────────────────────
+
+function KpiDashboard({ rows, data, rosters }: {
+  rows: Row[];
+  data: AppData;
+  rosters: Record<string, RosterEntry[]>;
+}) {
   const hasRentAmounts = rows.some((r) => r.record.amountDue > 0);
 
   const totalExpected = rows.reduce((s, r) => s + r.record.amountDue, 0);
@@ -542,6 +817,19 @@ function KpiDashboard({ rows }: { rows: Row[] }) {
           Add rent amounts to tenants to see accurate totals.
         </p>
       )}
+
+      {/* Donut */}
+      <DonutChart pct={collectionRate} />
+
+      {/* Revenue bar */}
+      <RevenueBar collected={totalCollected} outstanding={outstanding} expected={totalExpected} />
+
+      {/* Streak */}
+      <div style={{ marginBottom: 14 }}>
+        <StreakCounter data={data} rosters={rosters} unitsRemaining={unitsUnpaid} />
+      </div>
+
+      {/* KPI cards grid */}
       <div style={{
         display: "grid",
         gridTemplateColumns: "repeat(2, 1fr)",
