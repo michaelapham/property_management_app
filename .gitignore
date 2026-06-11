@@ -6,3 +6,6 @@ dist-ssr
 .DS_Store
 npm-debug.log*
 .claude/
+.env
+.env.local
+.env*.local
