@@ -1150,3 +1150,36 @@ a { color: inherit; text-decoration: none; }
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+/* Add Task bar — bottom of Tasks page, sits left of the FAB */
+.task-add-bar {
+  position: fixed;
+  bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px);
+  left: 16px;
+  right: calc(56px + 20px + 16px); /* FAB width + FAB right + gap */
+  height: 56px;
+  border-radius: 28px;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.task-add-bar:active {
+  opacity: 0.85;
+}
+
+@media (min-width: 900px) {
+  .task-add-bar {
+    bottom: 28px;
+    /* On desktop the FAB is also repositioned; keep same right clearance */
+  }
+}

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { useStore } from "../data/store";
 import { type Task, type TaskCategory } from "../types";
 import { fullAddress } from "../utils/format";
@@ -10,19 +9,18 @@ const CATEGORY_LABEL: Record<TaskCategory, string> = { urgent: "Urgent", soon: "
 const CATEGORY_COLOR: Record<TaskCategory, string> = {
   urgent: "var(--red)",
   soon: "var(--yellow)",
-  later: "var(--green)",
+  later: "#1D4ED8",
 };
 const CATEGORY_BG: Record<TaskCategory, string> = {
   urgent: "var(--red-bg)",
   soon: "var(--yellow-bg)",
-  later: "var(--green-bg)",
+  later: "rgba(29,78,216,0.10)",
 };
 
 export default function Tasks() {
   const { data, addTask, toggleTask } = useStore();
-  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [showModal, setShowModal] = useState(() => searchParams.get("new") === "1");
+  const [showModal, setShowModal] = useState(false);
   const [modalProperty, setModalProperty] = useState(() => data.properties[0]?.id ?? "");
   const [modalCategory, setModalCategory] = useState<TaskCategory>("urgent");
   const [inputText, setInputText] = useState("");
@@ -31,14 +29,21 @@ export default function Tasks() {
 
   useEffect(() => {
     if (showModal) {
+      // Reset property to first on each open in case list changed
+      if (!modalProperty && data.properties[0]) setModalProperty(data.properties[0].id);
       const t = setTimeout(() => inputRef.current?.focus(), 80);
       return () => clearTimeout(t);
     }
   }, [showModal]);
 
+  function openModal() {
+    setInputText("");
+    setModalCategory("urgent");
+    setShowModal(true);
+  }
+
   function closeModal() {
     setShowModal(false);
-    setSearchParams({}, { replace: true });
     setInputText("");
   }
 
@@ -88,12 +93,13 @@ export default function Tasks() {
     .sort((a, b) => b.completedAt!.localeCompare(a.completedAt!));
 
   const properties = data.properties;
+  const canSubmit = inputText.trim().length > 0 && !!modalProperty;
 
   return (
     <div style={{ padding: "16px 16px 96px" }}>
       {groups.length === 0 && completedTasks.length === 0 && (
         <div className="card" style={{ padding: "40px 24px", textAlign: "center", color: "var(--ink-soft)", fontSize: 15 }}>
-          No tasks yet. Tap the button below to add one.
+          No tasks yet. Tap "+ Add Task" below to get started.
         </div>
       )}
 
@@ -176,6 +182,11 @@ export default function Tasks() {
         </div>
       )}
 
+      {/* Add Task bar — sits left of the FAB at the bottom */}
+      <button className="task-add-bar" onClick={openModal}>
+        + Add Task
+      </button>
+
       {showModal && (
         <Overlay className="modal-backdrop" onBackdropClick={closeModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -239,14 +250,47 @@ export default function Tasks() {
 
             <div className="field">
               <label>Task — press Enter to add each line</label>
-              <input
-                ref={inputRef}
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="e.g. Fix leaking faucet"
-                disabled={properties.length === 0}
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  ref={inputRef}
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="e.g. Fix leaking faucet"
+                  disabled={properties.length === 0}
+                  style={{ paddingRight: 44 }}
+                />
+                <button
+                  type="button"
+                  onClick={commitInput}
+                  disabled={!canSubmit}
+                  aria-label="Add task item"
+                  style={{
+                    position: "absolute",
+                    right: 8,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    width: 30,
+                    height: 30,
+                    borderRadius: 6,
+                    border: "none",
+                    background: canSubmit ? "var(--brand)" : "transparent",
+                    color: canSubmit ? "#fff" : "var(--ink-faint)",
+                    cursor: canSubmit ? "pointer" : "default",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "background 0.12s, color 0.12s",
+                    padding: 0,
+                  }}
+                >
+                  {/* Send arrow icon */}
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <button
