@@ -46,8 +46,43 @@ function daysSince(isoDate?: string): number {
   return Math.floor((Date.now() - new Date(isoDate).getTime()) / 86400000);
 }
 
+function StatusBadge({ property }: { property: Property }) {
+  const { data, updateProperty } = useStore();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const status = propStatusOf(property, data.tenants);
+  const days = status === "vacant" ? daysSince(property.lastOccupiedDate) : null;
+  return (
+    <div style={{ position: "relative", flexShrink: 0 }}>
+      <button
+        className={`status-badge status-badge-${status}`}
+        onClick={() => setMenuOpen((v) => !v)}
+      >
+        <span className={`status-dot dot-${status}`} />
+        {status === "occupied" && "Occupied"}
+        {status === "vacant" && (days && days > 0 ? `Vacant · ${days}d` : "Vacant")}
+        {status === "pending" && "Pending"}
+      </button>
+      {menuOpen && (
+        <div className="status-menu">
+          <button
+            className="status-menu-item"
+            onClick={() => {
+              updateProperty(property.id, {
+                propertyStatus: status === "pending" ? undefined : "pending",
+              });
+              setMenuOpen(false);
+            }}
+          >
+            {status === "pending" ? "Clear Pending" : "Set Pending"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Dashboard() {
-  const { data, recordPayment, undoPayment, addNote, updateProperty } = useStore();
+  const { data, recordPayment, undoPayment, addNote } = useStore();
   const navigate = useNavigate();
   const month = currentMonthKey();
 
@@ -60,7 +95,6 @@ export default function Dashboard() {
     propertyId: string;
     name: string;
   } | null>(null);
-  const [statusMenuId, setStatusMenuId] = useState<string | null>(null);
 
   const rows = useMemo(() => {
     return data.tenants
@@ -77,12 +111,6 @@ export default function Dashboard() {
         return order[rentStatusOf(a.record)] - order[rentStatusOf(b.record)];
       });
   }, [data, month]);
-
-  const counts = useMemo(() => {
-    const c = { paid: 0, partial: 0, unpaid: 0 };
-    rows.forEach(({ record }) => c[rentStatusOf(record)]++);
-    return c;
-  }, [rows]);
 
   if (data.properties.length === 0) {
     return <Welcome />;
@@ -106,21 +134,6 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="stat-grid">
-        <div className="stat s-green">
-          <div className="num">{counts.paid}</div>
-          <div className="lbl">Paid</div>
-        </div>
-        <div className="stat s-yellow">
-          <div className="num">{counts.partial}</div>
-          <div className="lbl">Partial</div>
-        </div>
-        <div className="stat s-red">
-          <div className="num">{counts.unpaid}</div>
-          <div className="lbl">Unpaid</div>
-        </div>
-      </div>
-
       <div className="section-title">
         <span>Rent — {monthLabel(month)}</span>
       </div>
@@ -139,10 +152,10 @@ export default function Dashboard() {
         return (
           <div
             key={row.record.id}
-            className={`card rent-card status-${status}`}
+            className="card"
             style={{ marginBottom: 10 }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
               <Link to={`/tenants/${row.tenant.id}`}>
                 <Avatar
                   first={row.tenant.firstName}
@@ -165,6 +178,7 @@ export default function Dashboard() {
                   </span>
                 </div>
               </div>
+              <StatusBadge property={row.property} />
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
               {status !== "paid" ? (
@@ -252,10 +266,7 @@ export default function Dashboard() {
         <span>Properties</span>
       </div>
       {data.properties.map((property) => {
-        const status = propStatusOf(property, data.tenants);
-        const isMenuOpen = statusMenuId === property.id;
         const tenant = data.tenants.find((t) => t.propertyId === property.id);
-        const days = status === "vacant" ? daysSince(property.lastOccupiedDate) : null;
         return (
           <div key={property.id} className="card" style={{ marginBottom: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
@@ -268,42 +279,7 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-              <div style={{ position: "relative", flexShrink: 0 }}>
-                <button
-                  className={`status-badge status-badge-${status}`}
-                  onClick={() => setStatusMenuId(isMenuOpen ? null : property.id)}
-                >
-                  <span className={`status-dot dot-${status}`} />
-                  {status === "occupied" && "Occupied"}
-                  {status === "vacant" && (days && days > 0 ? `Vacant · ${days}d` : "Vacant")}
-                  {status === "pending" && "Pending"}
-                </button>
-                {isMenuOpen && (
-                  <div className="status-menu">
-                    {status !== "pending" ? (
-                      <button
-                        className="status-menu-item"
-                        onClick={() => {
-                          updateProperty(property.id, { propertyStatus: "pending" });
-                          setStatusMenuId(null);
-                        }}
-                      >
-                        Set Pending
-                      </button>
-                    ) : (
-                      <button
-                        className="status-menu-item"
-                        onClick={() => {
-                          updateProperty(property.id, { propertyStatus: undefined });
-                          setStatusMenuId(null);
-                        }}
-                      >
-                        Clear Pending
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
+              <StatusBadge property={property} />
             </div>
           </div>
         );
