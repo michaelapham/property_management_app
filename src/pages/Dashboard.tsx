@@ -190,12 +190,14 @@ export default function Dashboard() {
 
       {/* Month navigation */}
       <div className="month-nav-bar">
-        <div style={{ display: "flex" }}>
+        <div style={{ display: "flex", gap: 4 }}>
           <button className="month-nav-btn" onClick={() => shiftMonth(-12)} aria-label="Back 1 year">«</button>
           <button className="month-nav-btn" onClick={() => shiftMonth(-1)} aria-label="Back 1 month">‹</button>
         </div>
-        <span className="month-nav-label">RENT — {monthLabel(viewMonth).toUpperCase()}</span>
-        <div style={{ display: "flex" }}>
+        <span className={`month-nav-label month-nav-label-${viewMonth < currentMonthKey() ? "past" : viewMonth > currentMonthKey() ? "future" : "current"}`}>
+          RENT — {monthLabel(viewMonth).toUpperCase()}
+        </span>
+        <div style={{ display: "flex", gap: 4 }}>
           <button className="month-nav-btn" onClick={() => shiftMonth(1)} aria-label="Forward 1 month">›</button>
           <button className="month-nav-btn" onClick={() => shiftMonth(12)} aria-label="Forward 1 year">»</button>
         </div>
