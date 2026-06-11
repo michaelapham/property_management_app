@@ -26,8 +26,11 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
+  /* Force every element to inherit the body font — overrides browser
+     UA defaults that apply system fonts to buttons, inputs, selects, etc. */
+  font-family: inherit;
 }
 
 html,
@@ -40,8 +43,8 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family:
-    system-ui, "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+    "Inter Variable", "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 17px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
