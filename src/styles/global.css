@@ -40,7 +40,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family:
-    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    system-ui, "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
   font-size: 17px;
   line-height: 1.45;
@@ -109,7 +109,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .top-bar h1 {
-  font-size: 21px;
+  font-size: 24px;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -149,12 +149,12 @@ a { color: inherit; text-decoration: none; }
   justify-content: center;
   gap: 3px;
   font-size: 12px;
-  font-weight: 600;
-  color: var(--ink-faint);
+  font-weight: 400;
+  color: #4B5563; /* gray-600 */
   transition: color 0.15s;
 }
 
-.tab-nav a.active { color: var(--brand); }
+.tab-nav a.active { color: var(--ink); }
 .tab-nav a svg { width: 23px; height: 23px; }
 
 /* Desktop: centered white card + sidebar */
@@ -200,12 +200,14 @@ a { color: inherit; text-decoration: none; }
     flex-direction: row;
     justify-content: flex-start;
     gap: 12px;
-    font-size: 16px;
+    font-size: 14px;
+    font-weight: 400;
     padding: 11px 14px;
     border-radius: var(--radius-sm);
   }
-  .tab-nav a.active { background: var(--accent-bg); }
-  .tab-nav a:hover:not(.active) { background: var(--surface-2); color: var(--ink-soft); }
+  /* Active: near-black text + gray-100 pill — no blue accent */
+  .tab-nav a.active { background: #F3F4F6; color: var(--ink); }
+  .tab-nav a:hover:not(.active) { background: var(--surface-2); color: var(--ink); }
 
   /* Content area gets the gray tint so white .card components float on it */
   .app-content { flex: 1; min-width: 0; background: var(--bg); }
