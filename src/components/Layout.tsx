@@ -7,14 +7,12 @@ import {
   BuildingIcon,
   HomeIcon,
   MenuIcon,
-  PeopleIcon,
   ScanIcon,
   WrenchIcon,
 } from "./icons";
 
 const TABS = [
   { to: "/", label: "Today", icon: HomeIcon, end: true },
-  { to: "/tenants", label: "Tenants", icon: PeopleIcon },
   { to: "/properties", label: "Properties", icon: BuildingIcon },
   { to: "/contractors", label: "Contractors", icon: WrenchIcon },
   { to: "/scanner", label: "Scanner", icon: ScanIcon },
@@ -174,7 +172,13 @@ export default function Layout() {
           <div className="top-bar-inner">
             <div>
               <h1>
-                <img className="logo" src={`${import.meta.env.BASE_URL}icon.svg`} alt="" />
+                <button
+                  className="top-bar-logo-btn"
+                  aria-label="Go to Today"
+                  onClick={() => navigate("/")}
+                >
+                  <img className="logo" src={`${import.meta.env.BASE_URL}icon.svg`} alt="" />
+                </button>
                 {head?.title ?? "LandlordHQ"}
               </h1>
               {head?.sub && <div className="subtitle">{head.sub}</div>}
@@ -213,6 +217,15 @@ export default function Layout() {
                     Account
                   </button>
                 )}
+                <button
+                  className="drawer-item"
+                  onClick={() => {
+                    closeDrawer();
+                    navigate("/tenants");
+                  }}
+                >
+                  Tenants
+                </button>
                 <button
                   className="drawer-item"
                   onClick={() => {

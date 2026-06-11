@@ -52,7 +52,10 @@ function StatusBadge({ property }: { property: Property }) {
   const status = propStatusOf(property, data.tenants);
   const days = status === "vacant" ? daysSince(property.lastOccupiedDate) : null;
   return (
-    <div style={{ position: "relative", flexShrink: 0 }}>
+    <div
+      style={{ position: "relative", flexShrink: 0 }}
+      onClick={(e) => e.stopPropagation()}
+    >
       <button
         className={`status-badge status-badge-${status}`}
         onClick={() => setMenuOpen((v) => !v)}
@@ -155,10 +158,16 @@ export default function Dashboard() {
               <div
                 key={row.record.id}
                 className={`rent-row${i % 2 === 1 ? " rent-row-alt" : ""}`}
+                style={{ cursor: "pointer" }}
+                onClick={() => navigate(`/tenants/${row.tenant.id}`)}
               >
                 {/* Top line: avatar · name + address + pill · status badge */}
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <Link to={`/tenants/${row.tenant.id}`} style={{ flexShrink: 0 }}>
+                  <Link
+                    to={`/tenants/${row.tenant.id}`}
+                    style={{ flexShrink: 0 }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Avatar
                       first={row.tenant.firstName}
                       last={row.tenant.lastName}
@@ -191,7 +200,10 @@ export default function Dashboard() {
                       <button
                         className="btn btn-green btn-sm"
                         style={{ flex: 2 }}
-                        onClick={() => setPaymentFor({ row, defaultMode: "full" })}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPaymentFor({ row, defaultMode: "full" });
+                        }}
                       >
                         <CheckIcon size={16} />
                         {status === "partial"
@@ -201,7 +213,10 @@ export default function Dashboard() {
                       <button
                         className="btn btn-ghost btn-sm"
                         style={{ flex: 1.4 }}
-                        onClick={() => setPaymentFor({ row, defaultMode: "partial" })}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPaymentFor({ row, defaultMode: "partial" });
+                        }}
                       >
                         Partial…
                       </button>
@@ -211,20 +226,24 @@ export default function Dashboard() {
                       <button
                         className="btn btn-ghost btn-sm"
                         style={{ flex: 1 }}
-                        onClick={() =>
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setNoteFor({
                             tenantId: row.tenant.id,
                             propertyId: row.property.id,
                             name: row.tenant.firstName,
-                          })
-                        }
+                          });
+                        }}
                       >
                         + Note
                       </button>
                       <button
                         className="btn btn-ghost btn-sm"
                         style={{ flex: 1 }}
-                        onClick={() => undoPayment(row.record.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          undoPayment(row.record.id);
+                        }}
                       >
                         Undo
                       </button>
