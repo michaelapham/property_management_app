@@ -77,7 +77,14 @@ export default function TenantDetail() {
           {tenant.firstName} {tenant.lastName}
         </h2>
         <p style={{ color: "var(--ink-soft)", fontSize: 15, marginTop: 4 }}>
-          {property ? fullAddress(property) : "No property assigned"}
+          {property ? (
+            <span
+              style={{ cursor: "pointer", display: "inline-block", padding: "4px 10px", margin: "-4px -10px" }}
+              onClick={() => navigate(`/properties/${property.id}`)}
+            >
+              {fullAddress(property)}
+            </span>
+          ) : "No property assigned"}
         </p>
         <div style={{ marginTop: 8 }}>
           <span className={`pill pill-${status}`}>

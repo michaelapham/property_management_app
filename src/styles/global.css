@@ -1017,7 +1017,7 @@ a { color: inherit; text-decoration: none; }
   height: 56px;
   border-radius: 50%;
   background: var(--brand);
-  color: var(--accent-ink);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1026,6 +1026,7 @@ a { color: inherit; text-decoration: none; }
   position: relative;
   z-index: 1;
   touch-action: none;
+  /* Per-tab colors applied via inline style override */
 }
 
 .speed-dial-fab:active { opacity: 0.85; }

@@ -17,10 +17,7 @@ import PaymentModal from "../components/PaymentModal";
 import {
   CheckIcon,
   PlusIcon,
-  ScanIcon,
-  SparkleIcon,
   UploadIcon,
-  WrenchIcon,
 } from "../components/icons";
 
 const STATUS_LABEL: Record<RentStatus, string> = {
@@ -303,60 +300,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="section-title">
-        <span>Quick Actions</span>
-      </div>
-      <div className="quick-actions">
-        <button className="quick-action" onClick={() => navigate("/contractors")}>
-          <span className="qa-icon"><WrenchIcon size={19} /></span>
-          <span className="qa-label">Call a Contractor</span>
-          <span className="qa-sub">Your pros + nearby options</span>
-        </button>
-        <button
-          className="quick-action"
-          onClick={() => navigate("/contractors/prepare")}
-        >
-          <span className="qa-icon"><SparkleIcon size={19} /></span>
-          <span className="qa-label">Prepare for a Call</span>
-          <span className="qa-sub">Script, causes & price guide</span>
-        </button>
-        <button className="quick-action" onClick={() => navigate("/scanner")}>
-          <span className="qa-icon"><ScanIcon size={19} /></span>
-          <span className="qa-label">Scan a Receipt</span>
-          <span className="qa-sub">For tax records</span>
-        </button>
-        <button
-          className="quick-action"
-          onClick={() => navigate("/properties/new")}
-        >
-          <span className="qa-icon"><PlusIcon size={19} /></span>
-          <span className="qa-label">Add a Property</span>
-          <span className="qa-sub">House, rent & tenant info</span>
-        </button>
-      </div>
-
-      <div className="section-title">
-        <span>Properties</span>
-      </div>
-      {data.properties.map((property) => {
-        const tenant = data.tenants.find((t) => t.propertyId === property.id);
-        return (
-          <div key={property.id} className="card" style={{ marginBottom: 10 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div className="row-title" style={{ fontSize: 16 }}>{property.street}</div>
-                <div className="row-sub">{property.city}, {property.state}</div>
-                {tenant && (
-                  <div style={{ fontSize: 14, color: "var(--ink-soft)", marginTop: 2 }}>
-                    {tenant.firstName} {tenant.lastName}
-                  </div>
-                )}
-              </div>
-              <StatusBadge property={property} />
-            </div>
-          </div>
-        );
-      })}
 
       {paymentFor && (
         <PaymentModal

@@ -1,7 +1,6 @@
 import type { ComponentType } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, ClipboardIcon, PlusIcon } from "./icons";
-import { CheckIcon } from "./icons";
+import { ClipboardIcon, HomeIcon, PlusIcon } from "./icons";
 
 type FabConfig = {
   icon: ComponentType<{ size?: number }>;
@@ -20,7 +19,7 @@ export default function FAB() {
 
   if (pathname === "/") {
     cfg = {
-      icon: CheckIcon,
+      icon: HomeIcon,
       action: () => navigate("/tasks"),
       label: "Open Tasks",
       bg: "#EAB308",
@@ -47,12 +46,12 @@ export default function FAB() {
     };
   } else if (pathname === "/tasks") {
     cfg = {
-      icon: ChevronLeft,
+      icon: HomeIcon,
       action: () => navigate("/"),
       label: "Back to Today",
-      bg: "#EAB308",
-      color: "#1a1200",
-      shadow: "0 4px 18px rgba(234,179,8,0.40)",
+      bg: "var(--brand)",
+      color: "#fff",
+      shadow: "0 4px 18px rgba(37,99,235,0.35)",
     };
   }
 
@@ -65,7 +64,11 @@ export default function FAB() {
         className="speed-dial-fab"
         aria-label={cfg.label}
         onClick={cfg.action}
-        style={{ background: cfg.bg, color: cfg.color, boxShadow: cfg.shadow }}
+        style={{
+          background: cfg.bg,
+          color: cfg.color,
+          boxShadow: cfg.shadow,
+        }}
       >
         <Icon size={22} />
       </button>
