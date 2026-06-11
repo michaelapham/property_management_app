@@ -14,12 +14,14 @@ export interface LedgerRow {
   /** ISO timestamp */
   date: string;
   month: string;
-  /** New charge this row (monthly rent, shown only on first row per month) */
+  /** New charge this row (monthly rent, late fee, or balance forward amount) */
   amountDue: number;
   amountPaid: number;
   balance: number;
   method: string;
   notes?: string;
+  /** Synthetic rows (balance forward, late fee) are display-only computed rows */
+  isSynthetic?: boolean;
 }
 
 // MM/DD/YYYY

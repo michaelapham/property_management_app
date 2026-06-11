@@ -61,6 +61,10 @@ export interface Tenant {
   moveInDate?: string;
   leaseEndDate?: string;
   createdAt: string;
+  lateFeeSettings?: LateFeeSettings;
+  deposit?: DepositInfo;
+  rentHistory?: RentHistoryEntry[];
+  notices?: TenantNotice[];
 }
 
 export type RentStatus = "paid" | "partial" | "unpaid";
@@ -161,6 +165,70 @@ export interface Task {
   text: string;
   createdAt: string;
   completedAt?: string;
+}
+
+// ── Late Fee ──────────────────────────────────────────────────────────────────
+
+export interface LateFeeSettings {
+  enabled: boolean;
+  gracePeriodDays: number;
+  feeType: "flat" | "percent";
+  feeAmount: number;
+}
+
+// ── Security Deposit ──────────────────────────────────────────────────────────
+
+export interface DepositDeduction {
+  id: string;
+  date: string;
+  reason: string;
+  amount: number;
+}
+
+export interface DepositInfo {
+  amountCollected: number;
+  dateCollected?: string;
+  amountHeld: number;
+  deductions: DepositDeduction[];
+}
+
+// ── Rent Rate History ─────────────────────────────────────────────────────────
+
+export interface RentHistoryEntry {
+  id: string;
+  date: string;
+  previousAmount: number;
+  newAmount: number;
+  note?: string;
+}
+
+// ── Tenant Notices ────────────────────────────────────────────────────────────
+
+export type NoticeType = "late" | "payOrQuit" | "leaseRenewal" | "leaseViolation" | "other";
+export type NoticeMethod = "email" | "text" | "posted" | "handDelivered" | "certifiedMail";
+
+export const NOTICE_TYPE_LABEL: Record<NoticeType, string> = {
+  late: "Late Notice",
+  payOrQuit: "Pay or Quit",
+  leaseRenewal: "Lease Renewal Offer",
+  leaseViolation: "Lease Violation",
+  other: "Other",
+};
+
+export const NOTICE_METHOD_LABEL: Record<NoticeMethod, string> = {
+  email: "Email",
+  text: "Text",
+  posted: "Posted on Door",
+  handDelivered: "Hand Delivered",
+  certifiedMail: "Certified Mail",
+};
+
+export interface TenantNotice {
+  id: string;
+  date: string;
+  noticeType: NoticeType;
+  methodServed: NoticeMethod;
+  notes?: string;
 }
 
 export interface AppData {

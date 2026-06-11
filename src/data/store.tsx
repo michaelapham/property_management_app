@@ -11,15 +11,19 @@ import {
   type AppData,
   type AppSettings,
   type Contractor,
+  type DepositDeduction,
+  type DepositInfo,
   type LedgerEntry,
   type Note,
   type PaymentMethod,
   type Property,
   type Receipt,
+  type RentHistoryEntry,
   type RentRecord,
   type Task,
   type TaskCategory,
   type Tenant,
+  type TenantNotice,
   currentMonthKey,
 } from "../types";
 
@@ -107,6 +111,12 @@ interface StoreApi {
   importData: (raw: Partial<AppData>) => void;
   addTask: (t: { propertyId: string; category: TaskCategory; text: string }) => void;
   toggleTask: (id: string) => void;
+  updateTenantRent: (id: string, newAmount: number, note?: string) => void;
+  updateDeposit: (tenantId: string, patch: Partial<DepositInfo>) => void;
+  addDepositDeduction: (tenantId: string, d: Omit<DepositDeduction, "id">) => void;
+  removeDepositDeduction: (tenantId: string, deductionId: string) => void;
+  addTenantNotice: (tenantId: string, n: Omit<TenantNotice, "id">) => void;
+  removeTenantNotice: (tenantId: string, noticeId: string) => void;
 }
 
 const StoreContext = createContext<StoreApi | null>(null);
@@ -388,6 +398,87 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setData(ensureCurrentMonthRecords(merged));
   }, []);
 
+  const updateTenantRent = useCallback((id: string, newAmount: number, note?: string) => {
+    setData((d) => {
+      const existing = d.tenants.find((t) => t.id === id);
+      if (!existing || existing.rentAmount === newAmount) return d;
+      const histEntry: RentHistoryEntry = {
+        id: uid(),
+        date: new Date().toISOString(),
+        previousAmount: existing.rentAmount,
+        newAmount,
+        note: note?.trim() || undefined,
+      };
+      return {
+        ...d,
+        tenants: d.tenants.map((t) =>
+          t.id === id
+            ? { ...t, rentAmount: newAmount, rentHistory: [...(t.rentHistory ?? []), histEntry] }
+            : t
+        ),
+        rentRecords: d.rentRecords.map((r) =>
+          r.tenantId === id && r.month === currentMonthKey() && r.amountPaid === 0
+            ? { ...r, amountDue: newAmount }
+            : r
+        ),
+      };
+    });
+  }, []);
+
+  const updateDeposit = useCallback((tenantId: string, patch: Partial<DepositInfo>) => {
+    setData((d) => ({
+      ...d,
+      tenants: d.tenants.map((t) => {
+        if (t.id !== tenantId) return t;
+        const base: DepositInfo = t.deposit ?? { amountCollected: 0, amountHeld: 0, deductions: [] };
+        return { ...t, deposit: { ...base, ...patch } };
+      }),
+    }));
+  }, []);
+
+  const addDepositDeduction = useCallback((tenantId: string, ded: Omit<DepositDeduction, "id">) => {
+    setData((d) => ({
+      ...d,
+      tenants: d.tenants.map((t) => {
+        if (t.id !== tenantId) return t;
+        const base: DepositInfo = t.deposit ?? { amountCollected: 0, amountHeld: 0, deductions: [] };
+        return { ...t, deposit: { ...base, deductions: [...base.deductions, { ...ded, id: uid() }] } };
+      }),
+    }));
+  }, []);
+
+  const removeDepositDeduction = useCallback((tenantId: string, deductionId: string) => {
+    setData((d) => ({
+      ...d,
+      tenants: d.tenants.map((t) => {
+        if (t.id !== tenantId || !t.deposit) return t;
+        return { ...t, deposit: { ...t.deposit, deductions: t.deposit.deductions.filter((x) => x.id !== deductionId) } };
+      }),
+    }));
+  }, []);
+
+  const addTenantNotice = useCallback((tenantId: string, n: Omit<TenantNotice, "id">) => {
+    setData((d) => ({
+      ...d,
+      tenants: d.tenants.map((t) =>
+        t.id === tenantId
+          ? { ...t, notices: [{ ...n, id: uid() }, ...(t.notices ?? [])] }
+          : t
+      ),
+    }));
+  }, []);
+
+  const removeTenantNotice = useCallback((tenantId: string, noticeId: string) => {
+    setData((d) => ({
+      ...d,
+      tenants: d.tenants.map((t) =>
+        t.id === tenantId
+          ? { ...t, notices: (t.notices ?? []).filter((x) => x.id !== noticeId) }
+          : t
+      ),
+    }));
+  }, []);
+
   const addTask = useCallback(
     (t: { propertyId: string; category: TaskCategory; text: string }) => {
       const task: Task = { ...t, id: uid(), createdAt: new Date().toISOString() };
@@ -431,6 +522,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       importData,
       addTask,
       toggleTask,
+      updateTenantRent,
+      updateDeposit,
+      addDepositDeduction,
+      removeDepositDeduction,
+      addTenantNotice,
+      removeTenantNotice,
     }),
     [
       data,
@@ -453,6 +550,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       importData,
       addTask,
       toggleTask,
+      updateTenantRent,
+      updateDeposit,
+      addDepositDeduction,
+      removeDepositDeduction,
+      addTenantNotice,
+      removeTenantNotice,
     ]
   );
 

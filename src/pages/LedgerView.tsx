@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useStore } from "../data/store";
 import { PAYMENT_METHOD_LABEL } from "../types";
 import { fullAddress, money } from "../utils/format";
+import { lateFeeDate, lateFeeForMonth, monthName, prevMonthKey } from "../utils/tenantCalc";
 import { BookIcon, ChevronLeft, DownloadIcon } from "../components/icons";
 import {
   exportCSV,
@@ -70,56 +71,143 @@ export default function LedgerView() {
     [data.ledgerEntries, tenant.id, year]
   );
 
-  // Build the display rows, computing a running balance that accounts for
-  // all months including unpaid ones.
+  // Build display rows with balance-forward and late-fee synthetic rows injected.
+  // Two-pass algorithm:
+  //   Pass 1 — compute each month's opening balance (includes prior-year outstanding).
+  //   Pass 2 — build display rows only for months that have ledger entries.
   const rows = useMemo((): LedgerRow[] => {
     const recordByMonth = new Map(yearRecords.map((r) => [r.month, r]));
-    const allMonths = yearRecords.map((r) => r.month).sort();
-    const countedMonths = new Set<string>();
-    let runningBalance = 0;
-    const result: LedgerRow[] = [];
 
-    for (const entry of yearEntries) {
-      // Accumulate charges for all months up to (and including) this entry's month
-      for (const month of allMonths) {
-        if (month > entry.month) break;
-        if (!countedMonths.has(month)) {
-          countedMonths.add(month);
-          runningBalance += recordByMonth.get(month)?.amountDue ?? 0;
-        }
+    // All months with records this year, plus months appearing in entries
+    const allYearMonths = [...new Set([
+      ...yearRecords.map((r) => r.month),
+      ...yearEntries.map((e) => e.month),
+    ])].sort();
+
+    // --- Pass 1: compute opening balance per month ---
+    // Start with outstanding balance from ALL months before this year
+    let bal = 0;
+    for (const rec of data.rentRecords.filter(
+      (r) => r.tenantId === tenant.id && r.month < `${year}-01`
+    )) {
+      const fee = lateFeeForMonth(tenant, rec.month, rec);
+      bal += rec.amountDue + fee - rec.amountPaid;
+    }
+    const monthOpeningBalance = new Map<string, number>();
+    for (const month of allYearMonths) {
+      monthOpeningBalance.set(month, Math.max(0, bal));
+      const rec = recordByMonth.get(month);
+      const due = rec?.amountDue ?? 0;
+      const fee = rec ? lateFeeForMonth(tenant, month, rec) : 0;
+      const paid = yearEntries
+        .filter((e) => e.month === month)
+        .reduce((s, e) => s + e.amountPaid, 0);
+      bal += due + fee - paid;
+    }
+
+    // Group entries by month
+    const entriesByMonth = new Map<string, typeof yearEntries>();
+    for (const e of yearEntries) {
+      const arr = entriesByMonth.get(e.month) ?? [];
+      arr.push(e);
+      entriesByMonth.set(e.month, arr);
+    }
+
+    // --- Pass 2: build display rows ---
+    const result: LedgerRow[] = [];
+    let rowNum = 0;
+    let runningBalance = 0;
+    let balanceInitialized = false;
+
+    for (const month of allYearMonths) {
+      const entries = (entriesByMonth.get(month) ?? [])
+        .slice()
+        .sort((a, b) => a.date.localeCompare(b.date));
+      if (entries.length === 0) continue; // no display rows for months with no payments
+
+      const record = recordByMonth.get(month);
+      const due = record?.amountDue ?? 0;
+      const openingBalance = monthOpeningBalance.get(month) ?? 0;
+
+      // Sync runningBalance to openingBalance on first month with entries,
+      // or if it drifted (e.g. months with records but no entries in between).
+      if (!balanceInitialized) {
+        runningBalance = openingBalance;
+        balanceInitialized = true;
+      } else {
+        // Advance runningBalance through any months between last processed and now
+        // (they have no entries, so no display rows, but they add to the balance)
+        runningBalance = openingBalance;
       }
 
-      // Show "Due" only on the first payment entry for each month
-      const isFirstForMonth = !result.some((r) => r.month === entry.month);
-      const amountDue = isFirstForMonth
-        ? (recordByMonth.get(entry.month)?.amountDue ?? 0)
-        : 0;
+      // Balance Forward synthetic row
+      if (openingBalance > 0.005) {
+        rowNum++;
+        result.push({
+          rowNum,
+          date: `${month}-01T00:00:00.000Z`,
+          month,
+          amountDue: openingBalance,
+          amountPaid: 0,
+          balance: openingBalance,
+          method: "—",
+          notes: `Balance Forward from ${monthName(prevMonthKey(month))}`,
+          isSynthetic: true,
+        });
+      }
 
-      runningBalance -= entry.amountPaid;
+      // Add current month's rent charge to running balance
+      runningBalance += due;
 
-      result.push({
-        rowNum: result.length + 1,
-        date: entry.date,
-        month: entry.month,
-        amountDue,
-        amountPaid: entry.amountPaid,
-        balance: runningBalance,
-        method: PAYMENT_METHOD_LABEL[entry.paymentMethod] ?? entry.paymentMethod,
-        notes: entry.notes,
-      });
+      // Late Fee synthetic row
+      const fee = record ? lateFeeForMonth(tenant, month, record) : 0;
+      if (fee > 0.005) {
+        runningBalance += fee;
+        rowNum++;
+        result.push({
+          rowNum,
+          date: lateFeeDate(month, tenant.lateFeeSettings?.gracePeriodDays ?? 5).toISOString(),
+          month,
+          amountDue: fee,
+          amountPaid: 0,
+          balance: runningBalance,
+          method: "—",
+          notes: "Late Fee",
+          isSynthetic: true,
+        });
+      }
+
+      // Real payment entries
+      let firstForMonth = true;
+      for (const entry of entries) {
+        runningBalance -= entry.amountPaid;
+        rowNum++;
+        result.push({
+          rowNum,
+          date: entry.date,
+          month,
+          amountDue: firstForMonth ? due : 0,
+          amountPaid: entry.amountPaid,
+          balance: runningBalance,
+          method: PAYMENT_METHOD_LABEL[entry.paymentMethod] ?? entry.paymentMethod,
+          notes: entry.notes,
+          isSynthetic: false,
+        });
+        firstForMonth = false;
+      }
     }
 
     return result;
-  }, [yearEntries, yearRecords]);
+  }, [yearEntries, yearRecords, data.rentRecords, tenant, year]);
 
-  // YTD summary — use rent records for "due", ledger entries for "collected"
+  // YTD summary — rent records + late fees for "due", ledger entries for "collected"
   const maxMonth =
     year === currentYear
       ? `${year}-${String(new Date().getMonth() + 1).padStart(2, "0")}`
       : `${year}-12`;
   const ytdDue = yearRecords
     .filter((r) => r.month <= maxMonth)
-    .reduce((s, r) => s + r.amountDue, 0);
+    .reduce((s, r) => s + r.amountDue + lateFeeForMonth(tenant, r.month, r), 0);
   const ytdPaid = yearEntries.reduce((s, e) => s + e.amountPaid, 0);
   const ytdOutstanding = ytdDue - ytdPaid;
 
@@ -318,13 +406,18 @@ export default function LedgerView() {
                     ? `${money(Math.abs(row.balance))} CR`
                     : money(Math.abs(row.balance));
                   return (
-                    <tr key={row.rowNum}>
+                    <tr
+                      key={row.rowNum}
+                      style={row.isSynthetic ? { background: "#FFFBEB", fontStyle: "italic", opacity: 0.9 } : undefined}
+                    >
                       <td className="ledger-num">{row.rowNum}</td>
                       <td className="ledger-date">{fmtLedgerDate(row.date)}</td>
                       <td className="ledger-money">
                         {row.amountDue > 0.005 ? money(row.amountDue) : "—"}
                       </td>
-                      <td className="ledger-money ledger-paid">{money(row.amountPaid)}</td>
+                      <td className="ledger-money ledger-paid">
+                        {row.amountPaid > 0.005 ? money(row.amountPaid) : "—"}
+                      </td>
                       <td
                         className={`ledger-money ${isOwed ? "ledger-owed" : isClear ? "ledger-credit" : "ledger-clear"}`}
                       >
