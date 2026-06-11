@@ -12,6 +12,7 @@ import {
   type Tenant,
 } from "../types";
 import { fullAddress, money, monthLabel } from "../utils/format";
+import AnimatedNumber from "../components/AnimatedNumber";
 import Avatar from "../components/Avatar";
 import NoteModal from "../components/NoteModal";
 import Overlay from "../components/Overlay";
@@ -155,6 +156,7 @@ export default function Dashboard() {
   const importFileRef = useRef<HTMLInputElement>(null);
 
   const [viewMonth, setViewMonth] = useState(currentMonthKey);
+  const [listReady, setListReady] = useState(false);
   const [showKpi, setShowKpi] = useState(false);
   const [kpiReveal, setKpiReveal] = useState(0);
   const [pendingConfirm, setPendingConfirm] = useState<{ action: () => void } | null>(null);
@@ -179,6 +181,12 @@ export default function Dashboard() {
     if (rosters[viewMonth]) return;        // already frozen
     persistRoster(viewMonth, buildRosterFromLive(data));
   }, [viewMonth]); // intentionally excludes data/rosters — we only want to run on month navigation
+
+  // Brief skeleton on first mount of the Today list
+  useEffect(() => {
+    const t = setTimeout(() => setListReady(true), 200);
+    return () => clearTimeout(t);
+  }, []);
 
   function shiftMonth(delta: number) {
     setViewMonth((prev) => {
@@ -361,7 +369,15 @@ export default function Dashboard() {
       ) : (
         <>
 
-      {rows.length === 0 && (
+      {!listReady && (
+        <div>
+          <div className="skeleton-row" />
+          <div className="skeleton-row" />
+          <div className="skeleton-row" />
+        </div>
+      )}
+
+      {listReady && rows.length === 0 && (
         <div className="card">
           <p style={{ color: "var(--ink-soft)", fontSize: 16 }}>
             No tenants yet — add a tenant to a property to start tracking rent.
@@ -369,7 +385,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {rows.length > 0 && (
+      {listReady && rows.length > 0 && (
         <div className="rent-table">
           {rows.map((row, i) => {
             const status = rentStatusOf(row.record);
@@ -1139,7 +1155,7 @@ function KpiDashboard({ rows, data, rosters, viewMonth, revealKey }: {
           icon={<IcoDollarSign />} iconBg="#F3F4F6" iconColor="#6B7280"
           wmIcon={<IcoDollarSign />}
           sparkValues={spExpected} sparkColor="#9CA3AF"
-          value={<span style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", lineHeight: 1 }}>{fmt(animExpected)}</span>}
+          value={<span style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", lineHeight: 1 }}><AnimatedNumber value={fmt(animExpected)} /></span>}
           label="Total Expected"
           animating={animating}
         />
@@ -1150,7 +1166,7 @@ function KpiDashboard({ rows, data, rosters, viewMonth, revealKey }: {
           icon={<IcoTrendingUp />} iconBg="#DCFCE7" iconColor="#15803D"
           wmIcon={<IcoTrendingUp />}
           sparkValues={spCollected} sparkColor="#16A34A"
-          value={<span style={{ fontSize: 22, fontWeight: 700, color: "#15803D", lineHeight: 1 }}>{fmt(animCollected)}</span>}
+          value={<span style={{ fontSize: 22, fontWeight: 700, color: "#15803D", lineHeight: 1 }}><AnimatedNumber value={fmt(animCollected)} /></span>}
           label="Total Collected"
           animating={animating}
         />
@@ -1164,7 +1180,7 @@ function KpiDashboard({ rows, data, rosters, viewMonth, revealKey }: {
             sparkValues={spRate} sparkColor="#16A34A"
             value={
               <div style={{ display: "flex", flexDirection: "column" as const, gap: 4 }}>
-                <span style={{ fontSize: 26, fontWeight: 700, color: "#15803D", lineHeight: 1 }}>{animRate}%</span>
+                <span style={{ fontSize: 26, fontWeight: 700, color: "#15803D", lineHeight: 1 }}><AnimatedNumber value={`${animRate}%`} /></span>
                 <div style={{ height: 6, borderRadius: 99, background: "#D1FAE5", overflow: "hidden", marginTop: 2 }}>
                   <div style={{
                     height: "100%",
@@ -1187,7 +1203,7 @@ function KpiDashboard({ rows, data, rosters, viewMonth, revealKey }: {
           icon={<IcoCheckCircle />} iconBg="#DCFCE7" iconColor="#15803D"
           wmIcon={<IcoCheckCircle />}
           sparkValues={spPaid} sparkColor="#16A34A"
-          value={<span style={{ fontSize: 22, fontWeight: 700, color: "#15803D", lineHeight: 1 }}>{animPaid} / {rows.length}</span>}
+          value={<span style={{ fontSize: 22, fontWeight: 700, color: "#15803D", lineHeight: 1 }}><AnimatedNumber value={`${animPaid} / ${rows.length}`} /></span>}
           label="Units Paid"
           progressPct={unitsPaidPct}
           animating={animating}
@@ -1199,7 +1215,7 @@ function KpiDashboard({ rows, data, rosters, viewMonth, revealKey }: {
           icon={<IcoClock />} iconBg="#FEE2E2" iconColor="#B91C1C"
           wmIcon={<IcoClock />}
           sparkValues={spUnpaid} sparkColor="#DC2626"
-          value={<span style={{ fontSize: 22, fontWeight: 700, color: "#B91C1C", lineHeight: 1 }}>{animUnpaid}</span>}
+          value={<span style={{ fontSize: 22, fontWeight: 700, color: "#B91C1C", lineHeight: 1 }}><AnimatedNumber value={`${animUnpaid}`} /></span>}
           label="Units Unpaid"
           animating={animating}
         />
@@ -1211,7 +1227,7 @@ function KpiDashboard({ rows, data, rosters, viewMonth, revealKey }: {
             icon={<IcoAlertCircle />} iconBg="#FEE2E2" iconColor="#B91C1C"
             wmIcon={<IcoAlertCircle />}
             sparkValues={spOutstanding} sparkColor="#DC2626"
-            value={<span style={{ fontSize: 22, fontWeight: 700, color: "#B91C1C", lineHeight: 1 }}>{fmt(animOutstanding)}</span>}
+            value={<span style={{ fontSize: 22, fontWeight: 700, color: "#B91C1C", lineHeight: 1 }}><AnimatedNumber value={fmt(animOutstanding)} /></span>}
             label="Outstanding Balance"
             animating={animating}
           />

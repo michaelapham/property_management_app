@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useStore } from "../data/store";
 import type { Trade } from "../types";
@@ -30,9 +30,15 @@ export default function Contractors() {
 
   const saved = data.contractors.filter((c) => c.trade === selectedTrade);
 
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setReady(true), 200);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <>
-      <Link to="/contractors/prepare" className="card" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, background: "var(--accent-bg)", borderColor: "var(--brand)" }}>
+      <Link to="/contractors/prepare" className="card card-interactive" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, background: "var(--accent-bg)", borderColor: "var(--brand)" }}>
         <span style={{ color: "var(--brand)" }}><SparkleIcon /></span>
         <div className="row-body">
           <div className="row-title">Prepare for a Call</div>
@@ -62,7 +68,13 @@ export default function Contractors() {
         </button>
       </div>
 
-      {saved.length === 0 ? (
+      {!ready ? (
+        <div>
+          <div className="skeleton-row" />
+          <div className="skeleton-row" />
+          <div className="skeleton-row" />
+        </div>
+      ) : saved.length === 0 ? (
         <div className="card">
           <p style={{ color: "var(--ink-soft)", fontSize: 15 }}>
             No saved {tradeLabel(selectedTrade)} yet — tap Add to save the ones you trust for one-tap calling.

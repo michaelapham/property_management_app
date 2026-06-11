@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useStore } from "../data/store";
 import SpeedDial from "./SpeedDial";
 import Overlay from "./Overlay";
+import PageTransition from "./PageTransition";
 import {
   BuildingIcon,
   HomeIcon,
@@ -194,7 +195,9 @@ export default function Layout() {
           </div>
         </header>
         <main className="app-main">
-          <Outlet />
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
         </main>
         <SpeedDial />
       </div>

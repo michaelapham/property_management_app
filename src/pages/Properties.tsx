@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStore } from "../data/store";
 import { money } from "../utils/format";
@@ -6,6 +7,22 @@ import { ChevronRight, PlusIcon } from "../components/icons";
 export default function Properties() {
   const { data } = useStore();
   const navigate = useNavigate();
+
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setReady(true), 200);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (data.properties.length > 0 && !ready) {
+    return (
+      <div>
+        <div className="skeleton-row" />
+        <div className="skeleton-row" />
+        <div className="skeleton-row" />
+      </div>
+    );
+  }
 
   return (
     <>
