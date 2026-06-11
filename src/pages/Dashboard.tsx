@@ -13,12 +13,9 @@ import {
 import { fullAddress, money, monthLabel } from "../utils/format";
 import Avatar from "../components/Avatar";
 import NoteModal from "../components/NoteModal";
+import Overlay from "../components/Overlay";
 import PaymentModal from "../components/PaymentModal";
-import {
-  CheckIcon,
-  PlusIcon,
-  UploadIcon,
-} from "../components/icons";
+import { CheckIcon, PlusIcon, UploadIcon } from "../components/icons";
 
 const STATUS_LABEL: Record<RentStatus, string> = {
   paid: "Paid",
@@ -83,10 +80,31 @@ function StatusBadge({ property }: { property: Property }) {
 }
 
 export default function Dashboard() {
-  const { data, recordPayment, undoPayment, addNote, importData } = useStore();
+  const { data, undoPayment, addNote, importData, recordPaymentForMonth } = useStore();
   const navigate = useNavigate();
-  const month = currentMonthKey();
   const importFileRef = useRef<HTMLInputElement>(null);
+
+  const [viewMonth, setViewMonth] = useState(currentMonthKey);
+  const [pendingConfirm, setPendingConfirm] = useState<{ action: () => void } | null>(null);
+  const [paymentFor, setPaymentFor] = useState<{ row: Row; defaultMode: "full" | "partial" } | null>(null);
+  const [noteFor, setNoteFor] = useState<{ tenantId: string; propertyId: string; name: string } | null>(null);
+
+  function shiftMonth(delta: number) {
+    setViewMonth((prev) => {
+      const [y, m] = prev.split("-").map(Number);
+      const d = new Date(y, m - 1 + delta);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    });
+  }
+
+  // Gate any payment/undo action on past months behind a confirmation modal.
+  function withPastConfirm(action: () => void) {
+    if (viewMonth < currentMonthKey()) {
+      setPendingConfirm({ action });
+    } else {
+      action();
+    }
+  }
 
   function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -110,31 +128,35 @@ export default function Dashboard() {
     reader.readAsText(file);
   }
 
-  const [paymentFor, setPaymentFor] = useState<{
-    row: Row;
-    defaultMode: "full" | "partial";
-  } | null>(null);
-  const [noteFor, setNoteFor] = useState<{
-    tenantId: string;
-    propertyId: string;
-    name: string;
-  } | null>(null);
-
   const rows = useMemo(() => {
     return data.tenants
       .map((tenant) => {
-        const record = data.rentRecords.find(
-          (r) => r.tenantId === tenant.id && r.month === month
-        );
         const property = data.properties.find((p) => p.id === tenant.propertyId);
-        return record && property ? { tenant, record, property } : null;
+        if (!property) return null;
+        const record = data.rentRecords.find(
+          (r) => r.tenantId === tenant.id && r.month === viewMonth
+        );
+        // If no stored record, show as virtual unpaid (correct for past, present, and future).
+        const effectiveRecord: RentRecord = record ?? {
+          id: `__virtual__${tenant.id}__${viewMonth}`,
+          tenantId: tenant.id,
+          month: viewMonth,
+          amountDue: tenant.rentAmount,
+          amountPaid: 0,
+        };
+        return { tenant, record: effectiveRecord, property };
       })
       .filter((x): x is NonNullable<typeof x> => x !== null)
       .sort((a, b) => {
+        const sa = rentStatusOf(a.record);
+        const sb = rentStatusOf(b.record);
+        // Paid rows sink to the bottom.
+        if (sa === "paid" && sb !== "paid") return 1;
+        if (sb === "paid" && sa !== "paid") return -1;
         const order: Record<RentStatus, number> = { unpaid: 0, partial: 1, paid: 2 };
-        return order[rentStatusOf(a.record)] - order[rentStatusOf(b.record)];
+        return order[sa] - order[sb];
       });
-  }, [data, month]);
+  }, [data, viewMonth]);
 
   if (data.properties.length === 0) {
     return <Welcome />;
@@ -143,7 +165,7 @@ export default function Dashboard() {
   function submitPayment(amount: number | "full", method: PaymentMethod, notes: string) {
     if (!paymentFor) return;
     const { row } = paymentFor;
-    recordPayment(row.record.id, amount, method, notes.trim() || undefined);
+    recordPaymentForMonth(row.tenant.id, viewMonth, amount, method, notes.trim() || undefined);
     if (notes.trim()) {
       addNote({
         tenantId: row.tenant.id,
@@ -165,24 +187,30 @@ export default function Dashboard() {
         style={{ display: "none" }}
         onChange={handleImportFile}
       />
-      <div className="section-title">
-        <span>Rent — {monthLabel(month)}</span>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button
-            className="btn btn-ghost btn-xs"
-            onClick={() => importFileRef.current?.click()}
-          >
-            <UploadIcon size={13} />
-            Import
-          </button>
-          <button
-            className="btn btn-primary btn-xs"
-            onClick={() => navigate("/properties/new")}
-          >
-            <PlusIcon size={13} />
-            Add Property
-          </button>
+
+      {/* Month navigation */}
+      <div className="month-nav-bar">
+        <div style={{ display: "flex" }}>
+          <button className="month-nav-btn" onClick={() => shiftMonth(-12)} aria-label="Back 1 year">«</button>
+          <button className="month-nav-btn" onClick={() => shiftMonth(-1)} aria-label="Back 1 month">‹</button>
         </div>
+        <span className="month-nav-label">RENT — {monthLabel(viewMonth).toUpperCase()}</span>
+        <div style={{ display: "flex" }}>
+          <button className="month-nav-btn" onClick={() => shiftMonth(1)} aria-label="Forward 1 month">›</button>
+          <button className="month-nav-btn" onClick={() => shiftMonth(12)} aria-label="Forward 1 year">»</button>
+        </div>
+      </div>
+
+      {/* Import / Add Property */}
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginBottom: 12 }}>
+        <button className="btn btn-ghost btn-xs" onClick={() => importFileRef.current?.click()}>
+          <UploadIcon size={13} />
+          Import
+        </button>
+        <button className="btn btn-primary btn-xs" onClick={() => navigate("/properties/new")}>
+          <PlusIcon size={13} />
+          Add Property
+        </button>
       </div>
 
       {rows.length === 0 && (
@@ -202,10 +230,9 @@ export default function Dashboard() {
               <div
                 key={row.record.id}
                 className={`rent-row${i % 2 === 1 ? " rent-row-alt" : ""}`}
-                style={{ cursor: "pointer" }}
+                style={{ cursor: "pointer", opacity: status === "paid" ? 0.45 : 1 }}
                 onClick={() => navigate(`/tenants/${row.tenant.id}`)}
               >
-                {/* Top line: avatar · name + address + pill · status badge */}
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <Link
                     to={`/tenants/${row.tenant.id}`}
@@ -237,7 +264,6 @@ export default function Dashboard() {
                     <StatusBadge property={row.property} />
                   </div>
                 </div>
-                {/* Action buttons */}
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   {status !== "paid" ? (
                     <>
@@ -246,20 +272,18 @@ export default function Dashboard() {
                         style={{ flex: 2 }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setPaymentFor({ row, defaultMode: "full" });
+                          withPastConfirm(() => setPaymentFor({ row, defaultMode: "full" }));
                         }}
                       >
                         <CheckIcon size={16} />
-                        {status === "partial"
-                          ? `Collect ${money(remaining)}`
-                          : "Mark Paid"}
+                        {status === "partial" ? `Collect ${money(remaining)}` : "Mark Paid"}
                       </button>
                       <button
                         className="btn btn-ghost btn-sm"
                         style={{ flex: 1.4 }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setPaymentFor({ row, defaultMode: "partial" });
+                          withPastConfirm(() => setPaymentFor({ row, defaultMode: "partial" }));
                         }}
                       >
                         Partial…
@@ -286,7 +310,7 @@ export default function Dashboard() {
                         style={{ flex: 1 }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          undoPayment(row.record.id);
+                          withPastConfirm(() => undoPayment(row.record.id));
                         }}
                       >
                         Undo
@@ -300,6 +324,36 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Past-month edit confirmation */}
+      {pendingConfirm && (
+        <Overlay className="modal-backdrop" onBackdropClick={() => setPendingConfirm(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 10 }}>Edit Past Month?</h2>
+            <p style={{ color: "var(--ink-soft)", fontSize: 15, marginBottom: 20 }}>
+              You're editing a past month ({monthLabel(viewMonth)}). Are you sure?
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                className="btn btn-ghost"
+                style={{ flex: 1 }}
+                onClick={() => setPendingConfirm(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1 }}
+                onClick={() => {
+                  pendingConfirm.action();
+                  setPendingConfirm(null);
+                }}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </Overlay>
+      )}
 
       {paymentFor && (
         <PaymentModal

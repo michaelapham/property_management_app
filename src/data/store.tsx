@@ -89,6 +89,13 @@ interface StoreApi {
     method?: PaymentMethod,
     notes?: string
   ) => void;
+  recordPaymentForMonth: (
+    tenantId: string,
+    month: string,
+    amount: number | "full",
+    method?: PaymentMethod,
+    notes?: string
+  ) => void;
   undoPayment: (rentRecordId: string) => void;
   addNote: (n: Omit<Note, "id">) => void;
   addContractor: (c: Omit<Contractor, "id">) => void;
@@ -251,6 +258,62 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  // Creates the rent record for the given month if it doesn't exist, then records payment.
+  // Used by Dashboard's month navigation to handle both current and past/future months.
+  const recordPaymentForMonth = useCallback(
+    (
+      tenantId: string,
+      month: string,
+      amount: number | "full",
+      method: PaymentMethod = "other",
+      notes?: string
+    ) => {
+      setData((d) => {
+        let rec = d.rentRecords.find((r) => r.tenantId === tenantId && r.month === month);
+        let records = d.rentRecords;
+        if (!rec) {
+          const tenant = d.tenants.find((t) => t.id === tenantId);
+          rec = {
+            id: uid(),
+            tenantId,
+            month,
+            amountDue: tenant?.rentAmount ?? 0,
+            amountPaid: 0,
+          };
+          records = [...records, rec];
+        }
+        const newAmountPaid =
+          amount === "full"
+            ? rec.amountDue
+            : Math.min(rec.amountDue, rec.amountPaid + (amount as number));
+        const delta = newAmountPaid - rec.amountPaid;
+        if (delta <= 0) return { ...d, rentRecords: records };
+        const tenant = d.tenants.find((t) => t.id === tenantId);
+        const entry: LedgerEntry = {
+          id: uid(),
+          tenantId,
+          propertyId: tenant?.propertyId ?? "",
+          rentRecordId: rec.id,
+          date: new Date().toISOString(),
+          month,
+          amountPaid: delta,
+          paymentMethod: method,
+          notes: notes?.trim() || undefined,
+        };
+        return {
+          ...d,
+          rentRecords: records.map((r) =>
+            r.id === rec!.id
+              ? { ...r, amountPaid: newAmountPaid, paidDate: new Date().toISOString() }
+              : r
+          ),
+          ledgerEntries: [...d.ledgerEntries, entry],
+        };
+      });
+    },
+    []
+  );
+
   const undoPayment = useCallback((rentRecordId: string) => {
     setData((d) => ({
       ...d,
@@ -356,6 +419,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateTenant,
       removeTenant,
       recordPayment,
+      recordPaymentForMonth,
       undoPayment,
       addNote,
       addContractor,
@@ -377,6 +441,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateTenant,
       removeTenant,
       recordPayment,
+      recordPaymentForMonth,
       undoPayment,
       addNote,
       addContractor,
