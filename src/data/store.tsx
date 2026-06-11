@@ -29,6 +29,20 @@ import {
 
 const STORAGE_KEY = "landlordhq-data-v1";
 
+// Guard: sanitize currency amounts — reject NaN/Infinity/negative, round to 2dp
+function sanitizeMoney(n: number, allowZero = true): number {
+  if (!isFinite(n) || isNaN(n)) return 0;
+  const rounded = Math.round(n * 100) / 100;
+  return allowZero ? Math.max(0, rounded) : Math.max(0.01, rounded);
+}
+
+// Guard: strip currency symbols and commas before parsing (e.g. "$1,200" → 1200)
+export function parseMoney(raw: string | number): number {
+  if (typeof raw === "number") return sanitizeMoney(raw);
+  const cleaned = String(raw).replace(/[$,\s]/g, "");
+  return sanitizeMoney(parseFloat(cleaned) || 0);
+}
+
 const EMPTY: AppData = {
   properties: [],
   tenants: [],
@@ -50,15 +64,29 @@ function load(): AppData {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as Partial<AppData>;
+    // Guard: sanitize stored rent records — NaN amounts from old/corrupted data
+    const rentRecords = (parsed.rentRecords ?? []).map((r) => ({
+      ...r,
+      amountDue: isFinite(r.amountDue) ? Math.max(0, r.amountDue) : 0,
+      amountPaid: isFinite(r.amountPaid) ? Math.max(0, r.amountPaid) : 0,
+    }));
+    // Guard: sanitize tenant rent amounts
+    const tenants = (parsed.tenants ?? []).map((t) => ({
+      ...t,
+      rentAmount: isFinite(t.rentAmount) ? Math.max(0, t.rentAmount) : 0,
+    }));
     return {
       ...EMPTY,
       ...parsed,
+      tenants,
+      rentRecords,
       // Ensure new top-level keys exist for old stored data
       ledgerEntries: parsed.ledgerEntries ?? [],
       tasks: parsed.tasks ?? [],
       settings: parsed.settings ?? { landlordName: "" },
     };
   } catch {
+    // Guard: corrupted localStorage — fall back to empty state rather than crashing
     return EMPTY;
   }
 }
@@ -128,9 +156,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
+      // Guard: never write undefined/null — JSON.stringify handles this but double-check
+      if (!data) return;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch {
-      console.warn("localStorage write failed; data may exceed quota");
+    } catch (err) {
+      // Guard: localStorage quota exceeded — alert user so data is not silently lost
+      if (err instanceof DOMException && (
+        err.name === "QuotaExceededError" ||
+        err.name === "NS_ERROR_DOM_QUOTA_REACHED"
+      )) {
+        alert("Storage full — please export your data and clear old records.");
+      } else {
+        console.warn("localStorage write failed", err);
+      }
     }
   }, [data]);
 
@@ -167,7 +205,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addTenant = useCallback((t: Omit<Tenant, "id" | "createdAt">): Tenant => {
-    const tenant: Tenant = { ...t, id: uid(), createdAt: new Date().toISOString() };
+    // Guard: sanitize rent amount — reject NaN/negative before persisting
+    const tenant: Tenant = { ...t, id: uid(), createdAt: new Date().toISOString(), rentAmount: sanitizeMoney(t.rentAmount) };
     const record: RentRecord = {
       id: uid(),
       tenantId: tenant.id,
@@ -234,10 +273,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const rec = d.rentRecords.find((r) => r.id === rentRecordId);
         if (!rec) return d;
 
+        // Guard: sanitize payment amount — reject NaN/negative/zero before persisting
+        const safeAmount = amount === "full" ? "full" : sanitizeMoney(amount as number, false);
         const newAmountPaid =
-          amount === "full"
+          safeAmount === "full"
             ? rec.amountDue
-            : Math.min(rec.amountDue, rec.amountPaid + (amount as number));
+            : Math.min(rec.amountDue, rec.amountPaid + safeAmount);
         const delta = newAmountPaid - rec.amountPaid;
         if (delta <= 0) return d;
 
@@ -292,10 +333,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           };
           records = [...records, rec];
         }
+        // Guard: sanitize payment amount — reject NaN/negative before persisting
+        const safePmt = amount === "full" ? "full" : sanitizeMoney(amount as number, false);
         const newAmountPaid =
-          amount === "full"
+          safePmt === "full"
             ? rec.amountDue
-            : Math.min(rec.amountDue, rec.amountPaid + (amount as number));
+            : Math.min(rec.amountDue, rec.amountPaid + safePmt);
         const delta = newAmountPaid - rec.amountPaid;
         if (delta <= 0) return { ...d, rentRecords: records };
         const tenant = d.tenants.find((t) => t.id === tenantId);
@@ -401,7 +444,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateTenantRent = useCallback((id: string, newAmount: number, note?: string) => {
     setData((d) => {
       const existing = d.tenants.find((t) => t.id === id);
-      if (!existing || existing.rentAmount === newAmount) return d;
+      // Guard: sanitize before storing — reject NaN/negative rent amounts
+      const safeAmount = sanitizeMoney(newAmount);
+      if (!existing || existing.rentAmount === safeAmount) return d;
+      // Override with sanitized value
+      newAmount = safeAmount;
       const histEntry: RentHistoryEntry = {
         id: uid(),
         date: new Date().toISOString(),
