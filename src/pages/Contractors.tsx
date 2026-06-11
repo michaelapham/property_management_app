@@ -1,10 +1,6 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useStore } from "../data/store";
-import {
-  getNearbyContractors,
-  type NearbyContractor,
-} from "../data/nearbyContractors";
 import type { Trade } from "../types";
 import CallButton from "../components/CallButton";
 import Modal from "../components/Modal";
@@ -32,16 +28,7 @@ export default function Contractors() {
   const [showAdd, setShowAdd] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const cityLabel = useMemo(() => {
-    const p = data.properties[0];
-    return p ? `${p.city}, ${p.state}` : "your area";
-  }, [data.properties]);
-
   const saved = data.contractors.filter((c) => c.trade === selectedTrade);
-  const nearby = useMemo(
-    () => getNearbyContractors(selectedTrade, cityLabel),
-    [selectedTrade, cityLabel]
-  );
 
   return (
     <>
@@ -78,9 +65,7 @@ export default function Contractors() {
       {saved.length === 0 ? (
         <div className="card">
           <p style={{ color: "var(--ink-soft)", fontSize: 15 }}>
-            No saved {tradeLabel(selectedTrade)} yet — save the
-            ones you trust for one-tap calling. Until then, here are nearby
-            options below.
+            No saved {tradeLabel(selectedTrade)} yet — tap Add to save the ones you trust for one-tap calling.
           </p>
         </div>
       ) : (
@@ -119,30 +104,6 @@ export default function Contractors() {
         ))
       )}
 
-      <div className="section-title">
-        <span>Nearby {tradeLabel(selectedTrade)}s · {cityLabel}</span>
-      </div>
-      <p className="banner">
-        Demo listings with estimated rates (averaged for the area, outliers
-        excluded). Live data via a places provider is on the roadmap. Sorted
-        by availability → rating → price.
-      </p>
-      {nearby.map((c) => (
-        <NearbyCard
-          key={c.id}
-          contractor={c}
-          onSave={() =>
-            addContractor({
-              name: c.name,
-              trade: c.trade,
-              phone: c.phone,
-              hours: c.hoursToday,
-              rating: c.rating,
-            })
-          }
-        />
-      ))}
-
       {showAdd && (
         <AddContractorModal
           defaultTrade={selectedTrade}
@@ -178,61 +139,6 @@ export default function Contractors() {
         </Modal>
       )}
     </>
-  );
-}
-
-function NearbyCard({
-  contractor: c,
-  onSave,
-}: {
-  contractor: NearbyContractor;
-  onSave: () => void;
-}) {
-  const { data } = useStore();
-  const isSaved = data.contractors.some(
-    (s) => s.phone === c.phone && s.trade === c.trade
-  );
-  return (
-    <div className="card" style={{ marginBottom: 10 }}>
-      <div className="row-title">{c.name}</div>
-      <div className="contractor-meta">
-        <span>
-          <span className={`open-dot ${c.openNow ? "open" : "closed"}`} />
-          {c.openNow ? "Open now" : "Closed"} · {c.hoursToday}
-        </span>
-        <span>
-          <StarIcon size={12} /> {c.rating.toFixed(1)} ({c.reviewCount})
-        </span>
-        <span>📍 {c.distanceMi} mi</span>
-      </div>
-      <div className="contractor-meta" style={{ marginTop: 6 }}>
-        <span>Weekday {c.weekdayRate}</span>
-        <span>Weekend {c.weekendRate}</span>
-      </div>
-      <div style={{ fontSize: 14, color: "var(--ink-soft)", marginTop: 6 }}>
-        {c.services.join(" · ")}
-      </div>
-      <div style={{ display: "flex", gap: 8, marginTop: 11 }}>
-        <div style={{ flex: 2 }}>
-          <CallButton
-            phone={c.phone}
-            label="Call"
-            calleeName={c.name}
-            variant="green"
-            block
-            small
-          />
-        </div>
-        <button
-          className="btn btn-ghost btn-sm"
-          style={{ flex: 1 }}
-          disabled={isSaved}
-          onClick={onSave}
-        >
-          {isSaved ? "Saved ✓" : "Save"}
-        </button>
-      </div>
-    </div>
   );
 }
 

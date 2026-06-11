@@ -750,9 +750,6 @@ a { color: inherit; text-decoration: none; }
 }
 
 .contractor-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; color: var(--ink-soft); margin-top: 4px; }
-.open-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
-.open-dot.open { background: var(--green); }
-.open-dot.closed { background: var(--red); }
 
 /* ---------- Ledger table ---------- */
 .ledger-table {
