@@ -69,7 +69,9 @@ export function computeOpeningBalance(
   let balance = 0;
   for (const rec of priorRecords) {
     const fee = lateFeeForMonth(tenant, rec.month, rec);
-    balance += rec.amountDue + fee - rec.amountPaid;
+    const delta = rec.amountDue + fee - rec.amountPaid;
+    // Guard: skip NaN deltas from corrupted records to avoid poisoning the balance
+    if (isFinite(delta)) balance += delta;
   }
   return Math.max(0, balance);
 }

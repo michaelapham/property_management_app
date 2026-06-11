@@ -229,7 +229,13 @@ export default function LedgerView() {
   };
 
   function handleExport(fn: () => void) {
-    fn();
+    try {
+      fn();
+    } catch (err) {
+      // Guard: export errors (popup blocked, xlsx failure) should not crash the page
+      alert("Export failed — please try again or use a different format.");
+      console.error("Export error:", err);
+    }
     setExportOpen(false);
   }
 

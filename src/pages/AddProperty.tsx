@@ -137,8 +137,14 @@ export default function AddProperty() {
   }
 
   const addressValid = street.trim().length > 3 && city.trim().length > 1;
+  const rentNum = num(rent);
+  // Guard: rent must be a non-negative number; $0 is valid (free unit)
+  const rentValid = rentNum !== undefined && rentNum >= 0;
+  // Guard: if both lease dates are set, end must not be before start
+  const datesValid =
+    !leaseStart || !leaseEnd || new Date(leaseEnd) >= new Date(leaseStart);
   const tenantValid =
-    !hasTenant || (firstName.trim().length > 0 && num(rent) !== undefined);
+    !hasTenant || (firstName.trim().length > 0 && rentValid && datesValid);
 
   return (
     <>
@@ -380,6 +386,12 @@ export default function AddProperty() {
                   <input type="date" value={leaseEnd} onChange={(e) => setLeaseEnd(e.target.value)} />
                 </div>
               </div>
+              {/* Guard: warn when end date precedes start date */}
+              {!datesValid && (
+                <p style={{ color: "var(--red)", fontSize: 13, marginTop: -6, marginBottom: 8 }}>
+                  Lease end must be on or after lease start.
+                </p>
+              )}
               <PhotoField label="Tenant photo (optional)" value={tenantPhoto} onChange={setTenantPhoto} />
             </>
           )}

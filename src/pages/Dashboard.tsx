@@ -184,7 +184,10 @@ export default function Dashboard() {
     setViewMonth((prev) => {
       const [y, m] = prev.split("-").map(Number);
       const d = new Date(y, m - 1 + delta);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const nextY = d.getFullYear();
+      // Guard: clamp to 1970-2099 to prevent Date overflow and nonsensical navigation
+      if (nextY < 1970 || nextY > 2099) return prev;
+      return `${nextY}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     });
   }
 
@@ -786,7 +789,7 @@ function KpiCard({
 
 // ── Donut Chart ──────────────────────────────────────────────────────────────
 
-function DonutChart({ pct }: { pct: number }) {
+function DonutChart({ pct, isNA }: { pct: number; isNA?: boolean }) {
   const SIZE = 180;
   const STROKE = 16;
   const R = (SIZE - STROKE) / 2;
@@ -794,11 +797,14 @@ function DonutChart({ pct }: { pct: number }) {
   const cx = SIZE / 2;
   const cy = SIZE / 2;
 
+  // Guard: treat NaN pct as 0 so SVG math doesn't produce invalid values
+  const safePct = isNA || !isFinite(pct) ? 0 : Math.max(0, Math.min(100, pct));
+
   const [animPct, setAnimPct] = useState(0);
   useEffect(() => {
-    const raf = requestAnimationFrame(() => setAnimPct(pct));
+    const raf = requestAnimationFrame(() => setAnimPct(safePct));
     return () => cancelAnimationFrame(raf);
-  }, [pct]);
+  }, [safePct]);
 
   const dash = (animPct / 100) * CIRC;
 
@@ -806,44 +812,33 @@ function DonutChart({ pct }: { pct: number }) {
     <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", marginBottom: 16 }}>
       <svg width={SIZE} height={SIZE} style={{ overflow: "visible" }}>
         {/* track */}
-        <circle
-          cx={cx} cy={cy} r={R}
-          fill="none"
-          stroke="#E5E7EB"
-          strokeWidth={STROKE}
-        />
+        <circle cx={cx} cy={cy} r={R} fill="none" stroke="#E5E7EB" strokeWidth={STROKE} />
         {/* filled arc — starts from 12 o'clock */}
         <circle
           cx={cx} cy={cy} r={R}
           fill="none"
-          stroke="#16A34A"
+          stroke={isNA ? "#E5E7EB" : "#16A34A"}
           strokeWidth={STROKE}
           strokeLinecap="round"
           strokeDasharray={`${dash} ${CIRC}`}
           strokeDashoffset={CIRC / 4}
           style={{ transition: "stroke-dasharray 0.8s ease-in-out" }}
         />
-        {/* center text */}
+        {/* center text — "N/A" when no data, percentage otherwise */}
         <text
           x={cx} y={cy - 8}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fontSize={36}
-          fontWeight={700}
-          fill="#15803D"
-          fontFamily="inherit"
+          textAnchor="middle" dominantBaseline="middle"
+          fontSize={isNA ? 28 : 36} fontWeight={700}
+          fill={isNA ? "#9CA3AF" : "#15803D"} fontFamily="inherit"
         >
-          {pct}%
+          {isNA ? "N/A" : `${safePct}%`}
         </text>
         <text
           x={cx} y={cy + 20}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fontSize={13}
-          fill="#6B7280"
-          fontFamily="inherit"
+          textAnchor="middle" dominantBaseline="middle"
+          fontSize={13} fill="#6B7280" fontFamily="inherit"
         >
-          collected
+          {isNA ? "no data" : "collected"}
         </text>
       </svg>
     </div>
@@ -1108,7 +1103,8 @@ function KpiDashboard({ rows, data, rosters, viewMonth, revealKey }: {
       )}
 
       {/* Donut */}
-      <DonutChart pct={collectionRate} />
+      {/* Guard: pass isNA when no rent is expected so we show "N/A" instead of 0% */}
+      <DonutChart pct={collectionRate} isNA={totalExpected === 0} />
 
       {/* Revenue bar */}
       <RevenueBar collected={totalCollected} outstanding={outstanding} expected={totalExpected} />

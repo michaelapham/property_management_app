@@ -42,6 +42,8 @@ export default function NoteModal({
   const { addNote } = useStore();
   const [text, setText] = useState("");
   const [tags, setTags] = useState<NoteTag[]>(defaultTags);
+  // Guard: prevent double-tap from saving duplicate notes
+  const [saving, setSaving] = useState(false);
 
   const suggested = useMemo(() => {
     const found = new Set<NoteTag>();
@@ -56,6 +58,8 @@ export default function NoteModal({
   }
 
   function save() {
+    if (saving) return;
+    setSaving(true);
     const allTags = new Set<NoteTag>([...tags]);
     if (allTags.size === 0) allTags.add("general");
     addNote({
@@ -89,6 +93,7 @@ export default function NoteModal({
           placeholder="e.g. Replaced the air filter, tenant mentioned car trouble so rent may be tight, asked about a pool…"
           value={text}
           onChange={(e) => setText(e.target.value)}
+          maxLength={500}
         />
         {tags.includes("air-filter") && (
           <p className="hint">
@@ -108,7 +113,7 @@ export default function NoteModal({
           className="btn btn-green"
           style={{ flex: 2 }}
           onClick={save}
-          disabled={text.trim().length === 0 && tags.length === 0}
+          disabled={saving || (text.trim().length === 0 && tags.length === 0)}
         >
           Save Note
         </button>

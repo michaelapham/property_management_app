@@ -31,7 +31,9 @@ function fmtDate(iso: string): string {
 }
 
 function fmtMoney(n: number): string {
-  return n.toLocaleString("en-US", {
+  // Guard: NaN/Infinity from corrupted records should not produce "NaN" in exports
+  const safe = isFinite(n) ? n : 0;
+  return safe.toLocaleString("en-US", {
     style: "currency",
     currency: "USD",
     minimumFractionDigits: 2,

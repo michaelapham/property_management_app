@@ -23,14 +23,20 @@ export default function PaymentModal({
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("cash");
   const [notes, setNotes] = useState("");
+  // Guard: prevent double-tap from creating duplicate ledger entries
+  const [submitting, setSubmitting] = useState(false);
 
   const parsedAmount = parseFloat(amount);
   const isValidPartial = !Number.isNaN(parsedAmount) && parsedAmount > 0;
-  const canSubmit = mode === "full" || isValidPartial;
+  const canSubmit = !submitting && (mode === "full" || isValidPartial);
   const displayAmount = mode === "full" ? remaining : (isValidPartial ? parsedAmount : 0);
 
   function handleSubmit() {
-    onSubmit(mode === "full" ? "full" : parsedAmount, method, notes);
+    if (submitting) return;
+    setSubmitting(true);
+    // Guard: clamp partial amount to remaining balance so we never over-record
+    const safeAmount = mode === "full" ? "full" : Math.min(parsedAmount, remaining);
+    onSubmit(safeAmount, method, notes);
   }
 
   return (
@@ -95,6 +101,7 @@ export default function PaymentModal({
           placeholder="Anything notable about this payment…"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
+          maxLength={500}
           style={{ minHeight: 64 }}
         />
       </div>
