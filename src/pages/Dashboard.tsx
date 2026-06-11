@@ -146,89 +146,96 @@ export default function Dashboard() {
         </div>
       )}
 
-      {rows.map((row) => {
-        const status = rentStatusOf(row.record);
-        const remaining = row.record.amountDue - row.record.amountPaid;
-        return (
-          <div
-            key={row.record.id}
-            className="card"
-            style={{ marginBottom: 10 }}
-          >
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <Link to={`/tenants/${row.tenant.id}`}>
-                <Avatar
-                  first={row.tenant.firstName}
-                  last={row.tenant.lastName}
-                  photo={row.tenant.photoDataUrl}
-                />
-              </Link>
-              <div className="row-body">
-                <div className="row-title">
-                  {row.tenant.firstName} {row.tenant.lastName}
+      {rows.length > 0 && (
+        <div className="rent-table">
+          {rows.map((row, i) => {
+            const status = rentStatusOf(row.record);
+            const remaining = row.record.amountDue - row.record.amountPaid;
+            return (
+              <div
+                key={row.record.id}
+                className={`rent-row${i % 2 === 1 ? " rent-row-alt" : ""}`}
+              >
+                {/* Top line: avatar · name + address + pill · status badge */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <Link to={`/tenants/${row.tenant.id}`} style={{ flexShrink: 0 }}>
+                    <Avatar
+                      first={row.tenant.firstName}
+                      last={row.tenant.lastName}
+                      photo={row.tenant.photoDataUrl}
+                    />
+                  </Link>
+                  <div className="row-body">
+                    <div className="row-title" style={{ fontSize: 15 }}>
+                      {row.tenant.firstName} {row.tenant.lastName}
+                    </div>
+                    <div className="row-sub" style={{ fontSize: 13 }}>
+                      {fullAddress(row.property)}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, flexShrink: 0 }}>
+                    <StatusBadge property={row.property} />
+                    <span className={`pill pill-${status}`} style={{ fontSize: 12 }}>
+                      {STATUS_LABEL[status]}
+                      {status === "partial" &&
+                        ` — ${money(row.record.amountPaid)} of ${money(row.record.amountDue)}`}
+                      {status === "unpaid" && ` — ${money(row.record.amountDue)} due`}
+                      {status === "paid" && ` — ${money(row.record.amountDue)}`}
+                    </span>
+                  </div>
                 </div>
-                <div className="row-sub">{fullAddress(row.property)}</div>
-                <div style={{ marginTop: 5 }}>
-                  <span className={`pill pill-${status}`}>
-                    {STATUS_LABEL[status]}
-                    {status === "partial" &&
-                      ` — ${money(row.record.amountPaid)} of ${money(row.record.amountDue)}`}
-                    {status === "unpaid" && ` — ${money(row.record.amountDue)} due`}
-                    {status === "paid" && ` — ${money(row.record.amountDue)}`}
-                  </span>
+                {/* Action buttons */}
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  {status !== "paid" ? (
+                    <>
+                      <button
+                        className="btn btn-green btn-sm"
+                        style={{ flex: 2 }}
+                        onClick={() => setPaymentFor({ row, defaultMode: "full" })}
+                      >
+                        <CheckIcon size={16} />
+                        {status === "partial"
+                          ? `Collect ${money(remaining)}`
+                          : "Mark Paid"}
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ flex: 1.4 }}
+                        onClick={() => setPaymentFor({ row, defaultMode: "partial" })}
+                      >
+                        Partial…
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ flex: 1 }}
+                        onClick={() =>
+                          setNoteFor({
+                            tenantId: row.tenant.id,
+                            propertyId: row.property.id,
+                            name: row.tenant.firstName,
+                          })
+                        }
+                      >
+                        + Note
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ flex: 1 }}
+                        onClick={() => undoPayment(row.record.id)}
+                      >
+                        Undo
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
-              <StatusBadge property={row.property} />
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-              {status !== "paid" ? (
-                <>
-                  <button
-                    className="btn btn-green btn-sm"
-                    style={{ flex: 2 }}
-                    onClick={() => setPaymentFor({ row, defaultMode: "full" })}
-                  >
-                    <CheckIcon size={16} />
-                    {status === "partial"
-                      ? `Collect ${money(remaining)}`
-                      : "Mark Paid"}
-                  </button>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ flex: 1.4 }}
-                    onClick={() => setPaymentFor({ row, defaultMode: "partial" })}
-                  >
-                    Partial…
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ flex: 1 }}
-                    onClick={() =>
-                      setNoteFor({
-                        tenantId: row.tenant.id,
-                        propertyId: row.property.id,
-                        name: row.tenant.firstName,
-                      })
-                    }
-                  >
-                    + Note
-                  </button>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ flex: 1 }}
-                    onClick={() => undoPayment(row.record.id)}
-                  >
-                    Undo
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        );
-      })}
+            );
+          })}
+        </div>
+      )}
 
       <div className="section-title">
         <span>Quick Actions</span>

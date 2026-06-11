@@ -303,6 +303,27 @@ a { color: inherit; text-decoration: none; }
 .pill-partial { background: var(--yellow-bg); color: var(--yellow); }
 .pill-unpaid { background: var(--red-bg); color: var(--red); }
 
+/* ---------- Rent table (Today tab) ---------- */
+.rent-table {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.rent-row {
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  min-height: 52px;
+  box-sizing: border-box;
+}
+
+.rent-row:last-child { border-bottom: none; }
+
+/* Every other row gets a very subtle gray tint */
+.rent-row-alt { background: #F9FAFB; }
+
 /* ---------- Buttons ---------- */
 .btn {
   display: inline-flex;
