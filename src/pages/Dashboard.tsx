@@ -1,9 +1,10 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStore } from "../data/store";
 import {
   currentMonthKey,
   rentStatusOf,
+  type AppData,
   type PaymentMethod,
   type Property,
   type RentRecord,
@@ -17,16 +18,85 @@ import Overlay from "../components/Overlay";
 import PaymentModal from "../components/PaymentModal";
 import { CheckIcon, PlusIcon, UploadIcon } from "../components/icons";
 
+// ---------- Roster snapshot types & helpers ----------
+
+const ROSTER_KEY = "landlordhq-roster-v1";
+
+interface RosterEntry {
+  id: string;
+  propertyId: string;
+  firstName: string;
+  lastName: string;
+  rentAmount: number;
+  photoDataUrl?: string;
+  property: {
+    id: string;
+    street: string;
+    city: string;
+    state: string;
+    zip: string;
+  };
+}
+
+function loadRosters(): Record<string, RosterEntry[]> {
+  try {
+    return JSON.parse(localStorage.getItem(ROSTER_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function buildRosterFromLive(data: AppData): RosterEntry[] {
+  return data.tenants
+    .flatMap((tenant) => {
+      const property = data.properties.find((p) => p.id === tenant.propertyId);
+      if (!property) return [];
+      return [{
+        id: tenant.id,
+        propertyId: tenant.propertyId,
+        firstName: tenant.firstName,
+        lastName: tenant.lastName,
+        rentAmount: tenant.rentAmount,
+        photoDataUrl: tenant.photoDataUrl,
+        property: {
+          id: property.id,
+          street: property.street,
+          city: property.city,
+          state: property.state,
+          zip: property.zip,
+        },
+      }];
+    });
+}
+
+// ---------- Dashboard ----------
+
 const STATUS_LABEL: Record<RentStatus, string> = {
   paid: "Paid",
   partial: "Partial",
   unpaid: "Unpaid",
 };
 
+// Row uses loose structural types so both live and snapshot entries are accepted.
+type TenantLike = {
+  id: string;
+  propertyId: string;
+  firstName: string;
+  lastName: string;
+  rentAmount: number;
+  photoDataUrl?: string;
+};
+type PropertyLike = {
+  id: string;
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+};
 type Row = {
-  tenant: ReturnType<typeof useStore>["data"]["tenants"][number];
+  tenant: TenantLike;
   record: RentRecord;
-  property: ReturnType<typeof useStore>["data"]["properties"][number];
+  property: PropertyLike;
 };
 
 type PropStatus = "occupied" | "vacant" | "pending";
@@ -89,6 +159,25 @@ export default function Dashboard() {
   const [paymentFor, setPaymentFor] = useState<{ row: Row; defaultMode: "full" | "partial" } | null>(null);
   const [noteFor, setNoteFor] = useState<{ tenantId: string; propertyId: string; name: string } | null>(null);
 
+  // Roster snapshots: frozen tenant+property list per past/first-written month.
+  const [rosters, setRosters] = useState<Record<string, RosterEntry[]>>(loadRosters);
+
+  function persistRoster(month: string, entries: RosterEntry[]) {
+    setRosters((prev) => {
+      const next = { ...prev, [month]: entries };
+      localStorage.setItem(ROSTER_KEY, JSON.stringify(next));
+      return next;
+    });
+  }
+
+  // On first navigation to a past month with no existing snapshot, freeze the current roster.
+  useEffect(() => {
+    const realNow = currentMonthKey();
+    if (viewMonth >= realNow) return;      // current or future: no pre-freeze
+    if (rosters[viewMonth]) return;        // already frozen
+    persistRoster(viewMonth, buildRosterFromLive(data));
+  }, [viewMonth]); // intentionally excludes data/rosters — we only want to run on month navigation
+
   function shiftMonth(delta: number) {
     setViewMonth((prev) => {
       const [y, m] = prev.split("-").map(Number);
@@ -97,13 +186,20 @@ export default function Dashboard() {
     });
   }
 
-  // Gate any payment/undo action on past months behind a confirmation modal.
   function withPastConfirm(action: () => void) {
     if (viewMonth < currentMonthKey()) {
       setPendingConfirm({ action });
     } else {
       action();
     }
+  }
+
+  // Ensure a future month gets a snapshot the first time any change is made to it.
+  function ensureFutureSnapshot() {
+    const realNow = currentMonthKey();
+    if (viewMonth <= realNow) return;
+    if (rosters[viewMonth]) return;
+    persistRoster(viewMonth, buildRosterFromLive(data));
   }
 
   function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -128,35 +224,44 @@ export default function Dashboard() {
     reader.readAsText(file);
   }
 
-  const rows = useMemo(() => {
-    return data.tenants
-      .map((tenant) => {
-        const property = data.properties.find((p) => p.id === tenant.propertyId);
-        if (!property) return null;
+  const rows = useMemo((): Row[] => {
+    const realNow = currentMonthKey();
+
+    // Determine the roster source:
+    // - Past month with snapshot → frozen list from snapshot
+    // - Past month without snapshot yet → live (useEffect will freeze it shortly)
+    // - Current month → always live (reflects additions/removals in real time)
+    // - Future month → live at render time; only frozen once user makes a change
+    let entries: RosterEntry[];
+    if (viewMonth < realNow && rosters[viewMonth]) {
+      entries = rosters[viewMonth];
+    } else {
+      entries = buildRosterFromLive(data);
+    }
+
+    return entries
+      .map((entry) => {
         const record = data.rentRecords.find(
-          (r) => r.tenantId === tenant.id && r.month === viewMonth
+          (r) => r.tenantId === entry.id && r.month === viewMonth
         );
-        // If no stored record, show as virtual unpaid (correct for past, present, and future).
         const effectiveRecord: RentRecord = record ?? {
-          id: `__virtual__${tenant.id}__${viewMonth}`,
-          tenantId: tenant.id,
+          id: `__virtual__${entry.id}__${viewMonth}`,
+          tenantId: entry.id,
           month: viewMonth,
-          amountDue: tenant.rentAmount,
+          amountDue: entry.rentAmount,
           amountPaid: 0,
         };
-        return { tenant, record: effectiveRecord, property };
+        return { tenant: entry, record: effectiveRecord, property: entry.property };
       })
-      .filter((x): x is NonNullable<typeof x> => x !== null)
       .sort((a, b) => {
         const sa = rentStatusOf(a.record);
         const sb = rentStatusOf(b.record);
-        // Paid rows sink to the bottom.
         if (sa === "paid" && sb !== "paid") return 1;
         if (sb === "paid" && sa !== "paid") return -1;
         const order: Record<RentStatus, number> = { unpaid: 0, partial: 1, paid: 2 };
         return order[sa] - order[sb];
       });
-  }, [data, viewMonth]);
+  }, [data, viewMonth, rosters]);
 
   if (data.properties.length === 0) {
     return <Welcome />;
@@ -164,6 +269,7 @@ export default function Dashboard() {
 
   function submitPayment(amount: number | "full", method: PaymentMethod, notes: string) {
     if (!paymentFor) return;
+    ensureFutureSnapshot();
     const { row } = paymentFor;
     recordPaymentForMonth(row.tenant.id, viewMonth, amount, method, notes.trim() || undefined);
     if (notes.trim()) {
@@ -228,6 +334,8 @@ export default function Dashboard() {
           {rows.map((row, i) => {
             const status = rentStatusOf(row.record);
             const remaining = row.record.amountDue - row.record.amountPaid;
+            // For StatusBadge we need a full Property; fall back to live store or a stub.
+            const liveProperty = data.properties.find((p) => p.id === row.property.id);
             return (
               <div
                 key={row.record.id}
@@ -263,7 +371,7 @@ export default function Dashboard() {
                       {status === "unpaid" && ` — ${money(row.record.amountDue)} due`}
                       {status === "paid" && ` — ${money(row.record.amountDue)}`}
                     </span>
-                    <StatusBadge property={row.property} />
+                    {liveProperty && <StatusBadge property={liveProperty} />}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -312,7 +420,10 @@ export default function Dashboard() {
                         style={{ flex: 1 }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          withPastConfirm(() => undoPayment(row.record.id));
+                          withPastConfirm(() => {
+                            ensureFutureSnapshot();
+                            undoPayment(row.record.id);
+                          });
                         }}
                       >
                         Undo
@@ -360,7 +471,7 @@ export default function Dashboard() {
       {paymentFor && (
         <PaymentModal
           record={paymentFor.row.record}
-          tenant={paymentFor.row.tenant}
+          tenant={paymentFor.row.tenant as ReturnType<typeof useStore>["data"]["tenants"][number]}
           defaultMode={paymentFor.defaultMode}
           onSubmit={submitPayment}
           onClose={() => setPaymentFor(null)}
