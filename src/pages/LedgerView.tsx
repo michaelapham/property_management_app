@@ -289,13 +289,15 @@ export default function LedgerView() {
     const seq = entry ? receiptNumberByEntryId.get(entry.id) ?? 1 : 1;
     const d = new Date(row.date);
     const yyyymmdd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
-    const initials = `${tenant.firstName.charAt(0)}${tenant.lastName.charAt(0)}`.toUpperCase();
+    // tenant is guaranteed non-null here (early return above catches the null case)
+    const t = tenant!;
+    const initials = `${t.firstName.charAt(0)}${t.lastName.charAt(0)}`.toUpperCase();
     const receiptNumber = `${yyyymmdd}-${initials}-${String(seq).padStart(3, "0")}`;
     printReceipt({
       receiptNumber,
       landlordName,
       propertyAddress: property ? fullAddress(property) : "—",
-      tenantName: `${tenant.firstName} ${tenant.lastName}`,
+      tenantName: `${t.firstName} ${t.lastName}`,
       paymentDate: fmtLedgerDate(row.date),
       amountPaid: row.amountPaid,
       paymentMethod: row.method,
