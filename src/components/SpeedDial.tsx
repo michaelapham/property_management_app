@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ClipboardIcon, HomeIcon, PlusIcon } from "./icons";
+import { CheckIcon, ClipboardIcon, HomeIcon, PlusIcon } from "./icons";
 
 type FabConfig = {
   icon: ComponentType<{ size?: number }>;
@@ -19,7 +19,7 @@ export default function FAB() {
 
   if (pathname === "/") {
     cfg = {
-      icon: HomeIcon,
+      icon: CheckIcon,
       action: () => navigate("/tasks"),
       label: "Open Tasks",
       bg: "#EAB308",

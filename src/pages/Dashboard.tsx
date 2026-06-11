@@ -227,7 +227,6 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, flexShrink: 0 }}>
-                    <StatusBadge property={row.property} />
                     <span className={`pill pill-${status}`} style={{ fontSize: 12 }}>
                       {STATUS_LABEL[status]}
                       {status === "partial" &&
@@ -235,6 +234,7 @@ export default function Dashboard() {
                       {status === "unpaid" && ` — ${money(row.record.amountDue)} due`}
                       {status === "paid" && ` — ${money(row.record.amountDue)}`}
                     </span>
+                    <StatusBadge property={row.property} />
                   </div>
                 </div>
                 {/* Action buttons */}
