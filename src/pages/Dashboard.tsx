@@ -156,6 +156,7 @@ export default function Dashboard() {
 
   const [viewMonth, setViewMonth] = useState(currentMonthKey);
   const [showKpi, setShowKpi] = useState(false);
+  const [kpiReveal, setKpiReveal] = useState(0);
   const [pendingConfirm, setPendingConfirm] = useState<{ action: () => void } | null>(null);
   const [paymentFor, setPaymentFor] = useState<{ row: Row; defaultMode: "full" | "partial" } | null>(null);
   const [noteFor, setNoteFor] = useState<{ tenantId: string; propertyId: string; name: string } | null>(null);
@@ -321,7 +322,7 @@ export default function Dashboard() {
             borderRadius: 8,
             fontWeight: 600,
           }}
-          onClick={() => setShowKpi((v) => !v)}
+          onClick={() => { setShowKpi((v) => { if (!v) setKpiReveal((n) => n + 1); return !v; }); }}
         >
           <BarChart2Icon size={13} />
           Summary
@@ -337,7 +338,7 @@ export default function Dashboard() {
       </div>
 
       {showKpi ? (
-        <KpiDashboard rows={rows} data={data} rosters={rosters} />
+        <KpiDashboard rows={rows} data={data} rosters={rosters} viewMonth={viewMonth} revealKey={kpiReveal} />
       ) : (
         <>
 
@@ -510,6 +511,276 @@ export default function Dashboard() {
         />
       )}
     </>
+  );
+}
+
+// ── Inline lucide-style icons for KPI cards ──────────────────────────────────
+
+function IcoDollarSign() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+    </svg>
+  );
+}
+function IcoTrendingUp() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+    </svg>
+  );
+}
+function IcoPieChart() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>
+    </svg>
+  );
+}
+function IcoCheckCircle() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+  );
+}
+function IcoClock() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+  );
+}
+function IcoAlertCircle() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+  );
+}
+
+// ── Sparkline ─────────────────────────────────────────────────────────────────
+
+function Sparkline({ values, color }: { values: number[]; color: string }) {
+  const W = 200;
+  const H = 40;
+  const id = `sg-${color.replace(/[^a-z0-9]/gi, "")}`;
+
+  if (values.length < 2) {
+    return (
+      <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: "block" }}>
+        <line x1={0} y1={H / 2} x2={W} y2={H / 2} stroke="#9CA3AF" strokeWidth="1.5" strokeDasharray="4 3" />
+      </svg>
+    );
+  }
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * W;
+    const y = H - 4 - ((v - min) / range) * (H - 8);
+    return `${x},${y}`;
+  });
+  const polyline = pts.join(" ");
+  const firstPt = pts[0];
+  const lastPt = pts[pts.length - 1];
+  const [lastX] = lastPt.split(",");
+  const fillPath = `M0,${H} L${firstPt} L${polyline.split(" ").slice(1).join(" L")} L${lastX},${H} Z`;
+
+  return (
+    <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: "block" }}>
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.13" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={fillPath} fill={`url(#${id})`} />
+      <polyline points={polyline} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// ── Count-up hook ─────────────────────────────────────────────────────────────
+
+function useCountUp(target: number, running: boolean, duration = 800): number {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (!running) { setValue(0); return; }
+    const start = performance.now();
+    let raf: number;
+    function tick(now: number) {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      setValue(Math.round(target * ease));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, running, duration]);
+  return value;
+}
+
+// ── Sparkline data helper ─────────────────────────────────────────────────────
+
+function prevMonth(ym: string): string {
+  const [y, m] = ym.split("-").map(Number);
+  const d = new Date(y, m - 2);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getRowsForMonth(
+  month: string,
+  data: AppData,
+  rosters: Record<string, RosterEntry[]>,
+): { amountDue: number; amountPaid: number; status: RentStatus }[] {
+  const realNow = currentMonthKey();
+  let entries: RosterEntry[];
+  if (month < realNow && rosters[month]) {
+    entries = rosters[month];
+  } else {
+    entries = buildRosterFromLive(data);
+  }
+  return entries.map((entry) => {
+    const record = data.rentRecords.find((r) => r.tenantId === entry.id && r.month === month);
+    const amountDue = entry.rentAmount;
+    const amountPaid = record?.amountPaid ?? 0;
+    const eff = record ?? { id: "", tenantId: entry.id, month, amountDue, amountPaid: 0 };
+    return { amountDue, amountPaid, status: rentStatusOf(eff) };
+  });
+}
+
+function sparklineData(
+  kind: "expected" | "collected" | "rate" | "paid" | "unpaid" | "outstanding",
+  viewMonth: string,
+  data: AppData,
+  rosters: Record<string, RosterEntry[]>,
+): number[] {
+  const months: string[] = [];
+  let m = viewMonth;
+  for (let i = 0; i < 6; i++) {
+    months.unshift(m);
+    m = prevMonth(m);
+  }
+  return months.map((mo) => {
+    const rows = getRowsForMonth(mo, data, rosters);
+    const expected = rows.reduce((s, r) => s + r.amountDue, 0);
+    const collected = rows.reduce((s, r) => s + r.amountPaid, 0);
+    switch (kind) {
+      case "expected":    return expected;
+      case "collected":   return collected;
+      case "rate":        return expected > 0 ? Math.round((collected / expected) * 100) : 0;
+      case "paid":        return rows.filter((r) => r.status === "paid").length;
+      case "unpaid":      return rows.filter((r) => r.status === "unpaid").length;
+      case "outstanding": return Math.max(0, expected - collected);
+    }
+  });
+}
+
+// ── Icon badge ────────────────────────────────────────────────────────────────
+
+function IconBadge({
+  icon, bgColor, iconColor,
+}: {
+  icon: React.ReactNode;
+  bgColor: string;
+  iconColor: string;
+}) {
+  return (
+    <div style={{
+      width: 32, height: 32, borderRadius: "50%",
+      background: bgColor, color: iconColor,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      flexShrink: 0,
+    }}>
+      {icon}
+    </div>
+  );
+}
+
+// ── Watermark icon ────────────────────────────────────────────────────────────
+
+function Watermark({ icon }: { icon: React.ReactNode }) {
+  return (
+    <div style={{
+      position: "absolute", bottom: -6, right: -6,
+      opacity: 0.05, pointerEvents: "none",
+      width: 80, height: 80,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      transform: "scale(1)",
+    }}>
+      <div style={{ width: 80, height: 80, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {/* Scale up the icon by cloning with larger size via wrapper */}
+        <div style={{ transform: "scale(5)", transformOrigin: "center" }}>
+          {icon}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── KPI Card ──────────────────────────────────────────────────────────────────
+
+function KpiCard({
+  bg, value, label,
+  icon, iconBg, iconColor, wmIcon,
+  sparkValues, sparkColor,
+  progressPct,
+  animating,
+}: {
+  bg: string;
+  value: React.ReactNode;
+  label: string;
+  icon: React.ReactNode;
+  iconBg: string;
+  iconColor: string;
+  wmIcon: React.ReactNode;
+  sparkValues: number[];
+  sparkColor: string;
+  progressPct?: number;
+  animating: boolean;
+}) {
+  return (
+    <div style={{
+      position: "relative",
+      overflow: "hidden",
+      borderRadius: 16,
+      background: bg,
+      boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+      display: "flex",
+      flexDirection: "column" as const,
+      paddingBottom: progressPct !== undefined ? 0 : undefined,
+    }}>
+      {/* Watermark */}
+      <Watermark icon={wmIcon} />
+
+      {/* Main content */}
+      <div style={{ padding: "14px 16px 10px", display: "flex", flexDirection: "column" as const, gap: 4, position: "relative" }}>
+        <IconBadge icon={icon} bgColor={iconBg} iconColor={iconColor} />
+        <div style={{ marginTop: 8 }}>{value}</div>
+        <span style={{ fontSize: 12, color: iconColor === "#6B7280" ? "var(--ink-soft)" : iconColor === "#15803D" ? "#166534" : "#991B1B" }}>
+          {label}
+        </span>
+      </div>
+
+      {/* Sparkline — flush bottom of content area */}
+      <div style={{ marginTop: "auto", lineHeight: 0 }}>
+        <Sparkline values={sparkValues} color={sparkColor} />
+      </div>
+
+      {/* Units Paid progress bar — flush bottom of card */}
+      {progressPct !== undefined && (
+        <div style={{ height: 6, background: "#E5E7EB", borderRadius: "0 0 16px 16px", overflow: "hidden" }}>
+          <div style={{
+            height: "100%",
+            width: animating ? `${progressPct}%` : "0%",
+            background: "#16A34A",
+            transition: "width 0.8s ease-out 0.2s",
+          }} />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -784,10 +1055,12 @@ function StreakCounter({ data, rosters, unitsRemaining }: {
 
 // ── KPI Dashboard ─────────────────────────────────────────────────────────────
 
-function KpiDashboard({ rows, data, rosters }: {
+function KpiDashboard({ rows, data, rosters, viewMonth, revealKey }: {
   rows: Row[];
   data: AppData;
   rosters: Record<string, RosterEntry[]>;
+  viewMonth: string;
+  revealKey: number;
 }) {
   const hasRentAmounts = rows.some((r) => r.record.amountDue > 0);
 
@@ -798,17 +1071,33 @@ function KpiDashboard({ rows, data, rosters }: {
   const outstanding = totalExpected - totalCollected;
   const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0;
 
+  // Count-up animations — reset each time revealKey increments
+  const [animating, setAnimating] = useState(false);
+  useEffect(() => {
+    setAnimating(false);
+    const t = setTimeout(() => setAnimating(true), 30);
+    return () => clearTimeout(t);
+  }, [revealKey]);
+
+  const animExpected    = useCountUp(totalExpected, animating);
+  const animCollected   = useCountUp(totalCollected, animating);
+  const animRate        = useCountUp(collectionRate, animating);
+  const animPaid        = useCountUp(unitsPaid, animating);
+  const animUnpaid      = useCountUp(unitsUnpaid, animating);
+  const animOutstanding = useCountUp(outstanding, animating);
+
   const fmt = (n: number) =>
     "$" + n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-  const cardBase = {
-    borderRadius: 16,
-    padding: "18px 16px 14px",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: 4,
-  };
+  // Sparkline datasets
+  const spExpected    = sparklineData("expected",    viewMonth, data, rosters);
+  const spCollected   = sparklineData("collected",   viewMonth, data, rosters);
+  const spRate        = sparklineData("rate",        viewMonth, data, rosters);
+  const spPaid        = sparklineData("paid",        viewMonth, data, rosters);
+  const spUnpaid      = sparklineData("unpaid",      viewMonth, data, rosters);
+  const spOutstanding = sparklineData("outstanding", viewMonth, data, rosters);
+
+  const unitsPaidPct = rows.length > 0 ? (unitsPaid / rows.length) * 100 : 0;
 
   return (
     <div>
@@ -830,71 +1119,92 @@ function KpiDashboard({ rows, data, rosters }: {
       </div>
 
       {/* KPI cards grid */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(2, 1fr)",
-        gap: 10,
-      }}
-        className="kpi-grid"
-      >
-        {/* Total Rent Expected — neutral */}
-        <div style={{ ...cardBase, background: "#fff" }}>
-          <span style={{ fontSize: 24, fontWeight: 700, color: "var(--ink)", lineHeight: 1 }}>
-            {fmt(totalExpected)}
-          </span>
-          <span style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>Total Expected</span>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }} className="kpi-grid">
+
+        {/* Total Rent Expected */}
+        <KpiCard
+          bg="#fff"
+          icon={<IcoDollarSign />} iconBg="#F3F4F6" iconColor="#6B7280"
+          wmIcon={<IcoDollarSign />}
+          sparkValues={spExpected} sparkColor="#9CA3AF"
+          value={<span style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", lineHeight: 1 }}>{fmt(animExpected)}</span>}
+          label="Total Expected"
+          animating={animating}
+        />
+
+        {/* Total Collected */}
+        <KpiCard
+          bg="#F0FDF4"
+          icon={<IcoTrendingUp />} iconBg="#DCFCE7" iconColor="#15803D"
+          wmIcon={<IcoTrendingUp />}
+          sparkValues={spCollected} sparkColor="#16A34A"
+          value={<span style={{ fontSize: 22, fontWeight: 700, color: "#15803D", lineHeight: 1 }}>{fmt(animCollected)}</span>}
+          label="Total Collected"
+          animating={animating}
+        />
+
+        {/* Collection Rate — full-width */}
+        <div style={{ gridColumn: "1 / -1" }}>
+          <KpiCard
+            bg="#F0FDF4"
+            icon={<IcoPieChart />} iconBg="#DCFCE7" iconColor="#15803D"
+            wmIcon={<IcoPieChart />}
+            sparkValues={spRate} sparkColor="#16A34A"
+            value={
+              <div style={{ display: "flex", flexDirection: "column" as const, gap: 4 }}>
+                <span style={{ fontSize: 26, fontWeight: 700, color: "#15803D", lineHeight: 1 }}>{animRate}%</span>
+                <div style={{ height: 6, borderRadius: 99, background: "#D1FAE5", overflow: "hidden", marginTop: 2 }}>
+                  <div style={{
+                    height: "100%",
+                    width: animating ? `${collectionRate}%` : "0%",
+                    background: "#16A34A",
+                    borderRadius: 99,
+                    transition: "width 0.8s ease-out",
+                  }} />
+                </div>
+              </div>
+            }
+            label="Collection Rate"
+            animating={animating}
+          />
         </div>
 
-        {/* Total Collected — green */}
-        <div style={{ ...cardBase, background: "#F0FDF4" }}>
-          <span style={{ fontSize: 24, fontWeight: 700, color: "#15803D", lineHeight: 1 }}>
-            {fmt(totalCollected)}
-          </span>
-          <span style={{ fontSize: 12, color: "#166534", marginTop: 2 }}>Total Collected</span>
+        {/* Units Paid */}
+        <KpiCard
+          bg="#F0FDF4"
+          icon={<IcoCheckCircle />} iconBg="#DCFCE7" iconColor="#15803D"
+          wmIcon={<IcoCheckCircle />}
+          sparkValues={spPaid} sparkColor="#16A34A"
+          value={<span style={{ fontSize: 22, fontWeight: 700, color: "#15803D", lineHeight: 1 }}>{animPaid} / {rows.length}</span>}
+          label="Units Paid"
+          progressPct={unitsPaidPct}
+          animating={animating}
+        />
+
+        {/* Units Unpaid */}
+        <KpiCard
+          bg="#FEF2F2"
+          icon={<IcoClock />} iconBg="#FEE2E2" iconColor="#B91C1C"
+          wmIcon={<IcoClock />}
+          sparkValues={spUnpaid} sparkColor="#DC2626"
+          value={<span style={{ fontSize: 22, fontWeight: 700, color: "#B91C1C", lineHeight: 1 }}>{animUnpaid}</span>}
+          label="Units Unpaid"
+          animating={animating}
+        />
+
+        {/* Outstanding Balance — full-width */}
+        <div style={{ gridColumn: "1 / -1" }}>
+          <KpiCard
+            bg="#FEF2F2"
+            icon={<IcoAlertCircle />} iconBg="#FEE2E2" iconColor="#B91C1C"
+            wmIcon={<IcoAlertCircle />}
+            sparkValues={spOutstanding} sparkColor="#DC2626"
+            value={<span style={{ fontSize: 22, fontWeight: 700, color: "#B91C1C", lineHeight: 1 }}>{fmt(animOutstanding)}</span>}
+            label="Outstanding Balance"
+            animating={animating}
+          />
         </div>
 
-        {/* Collection Rate — green, full-width */}
-        <div style={{ ...cardBase, background: "#F0FDF4", gridColumn: "1 / -1" }}>
-          <span style={{ fontSize: 28, fontWeight: 700, color: "#15803D", lineHeight: 1 }}>
-            {collectionRate}%
-          </span>
-          <span style={{ fontSize: 12, color: "#166534", marginTop: 2, marginBottom: 6 }}>Collection Rate</span>
-          <div style={{ height: 6, borderRadius: 99, background: "#D1FAE5", overflow: "hidden" }}>
-            <div
-              style={{
-                height: "100%",
-                width: `${collectionRate}%`,
-                background: "#16A34A",
-                borderRadius: 99,
-                transition: "width 0.4s ease",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Units Paid — green */}
-        <div style={{ ...cardBase, background: "#F0FDF4" }}>
-          <span style={{ fontSize: 24, fontWeight: 700, color: "#15803D", lineHeight: 1 }}>
-            {unitsPaid} / {rows.length}
-          </span>
-          <span style={{ fontSize: 12, color: "#166534", marginTop: 2 }}>Units Paid</span>
-        </div>
-
-        {/* Units Unpaid — red */}
-        <div style={{ ...cardBase, background: "#FEF2F2" }}>
-          <span style={{ fontSize: 24, fontWeight: 700, color: "#B91C1C", lineHeight: 1 }}>
-            {unitsUnpaid}
-          </span>
-          <span style={{ fontSize: 12, color: "#991B1B", marginTop: 2 }}>Units Unpaid</span>
-        </div>
-
-        {/* Outstanding Balance — red */}
-        <div style={{ ...cardBase, background: "#FEF2F2", gridColumn: "1 / -1" }}>
-          <span style={{ fontSize: 24, fontWeight: 700, color: "#B91C1C", lineHeight: 1 }}>
-            {fmt(outstanding)}
-          </span>
-          <span style={{ fontSize: 12, color: "#991B1B", marginTop: 2 }}>Outstanding Balance</span>
-        </div>
       </div>
     </div>
   );
