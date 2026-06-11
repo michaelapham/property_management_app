@@ -329,30 +329,42 @@ a { color: inherit; text-decoration: none; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  font-weight: 650;
-  font-size: 16px;
-  padding: 12px 18px;
-  border-radius: var(--radius-sm);
+  gap: 7px;
+  font-weight: 500;
+  font-size: 15px;
+  padding: 10px 16px;
+  border-radius: 8px; /* rounded-lg */
   transition: transform 0.08s, opacity 0.15s;
   text-align: center;
+  letter-spacing: 0;
 }
 
 .btn:active { transform: scale(0.97); }
-.btn:disabled { opacity: 0.45; cursor: default; }
+.btn:disabled { opacity: 0.4; cursor: default; }
 
-.btn-primary { background: var(--brand); color: var(--accent-ink); }
+/* Primary CTA — black bg, white text */
+.btn-primary { background: #111827; color: #FFFFFF; }
+.btn-primary:hover:not(:disabled) { background: #1f2937; }
+
+/* Semantic green — payment / save / confirm */
 .btn-green { background: var(--green); color: #ffffff; }
-.btn-accent { background: var(--brand); color: var(--accent-ink); }
+.btn-green:hover:not(:disabled) { opacity: 0.9; }
+
+/* Accent alias (kept for compatibility) */
+.btn-accent { background: #111827; color: #FFFFFF; }
+
+/* Secondary / outline — white bg, gray border, gray text */
 .btn-ghost {
-  background: var(--surface-2);
-  color: var(--ink-soft);
-  border: 1px solid var(--line);
+  background: #FFFFFF;
+  color: #374151;
+  border: 1px solid #D1D5DB;
 }
+.btn-ghost:hover:not(:disabled) { background: #F9FAFB; border-color: #9CA3AF; }
+
 .btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid rgba(220, 38, 38, 0.35); }
 .btn-block { width: 100%; }
-.btn-sm { font-size: 14.5px; padding: 8px 13px; border-radius: 9px; }
-.btn-lg { font-size: 18px; padding: 15px 22px; }
+.btn-sm { font-size: 13.5px; padding: 7px 12px; border-radius: 7px; }
+.btn-lg { font-size: 17px; padding: 13px 20px; }
 
 .fab {
   position: fixed;
