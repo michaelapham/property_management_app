@@ -12,6 +12,17 @@ import {
   type LedgerHeader,
   type LedgerRow,
 } from "../utils/exportLedger";
+import { printReceipt } from "../utils/reportExport";
+
+type StatusFilter = "all" | "paid" | "partial" | "unpaid" | "late-fee";
+
+const PrinterIcon = ({ size = 15 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 6 2 18 2 18 9" />
+    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+    <rect x="6" y="14" width="12" height="8" />
+  </svg>
+);
 
 function fmtLedgerDate(iso: string): string {
   const d = new Date(iso);
@@ -31,6 +42,15 @@ export default function LedgerView() {
   const [year, setYear] = useState(currentYear);
   const [exportOpen, setExportOpen] = useState(false);
   const exportBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Filter state
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [minAmount, setMinAmount] = useState("");
+  const [maxAmount, setMaxAmount] = useState("");
+  const [notesSearch, setNotesSearch] = useState("");
 
   const tenant = data.tenants.find((t) => t.id === id);
   if (!tenant) {
@@ -200,6 +220,89 @@ export default function LedgerView() {
     return result;
   }, [yearEntries, yearRecords, data.rentRecords, tenant, year]);
 
+  // Receipt numbers: NNN = sequential index of an entry among ALL of this tenant's
+  // entries sorted by date (1-based). Keyed by entry id.
+  const receiptNumberByEntryId = useMemo(() => {
+    const sorted = data.ledgerEntries
+      .filter((e) => e.tenantId === tenant.id)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const map = new Map<string, number>();
+    sorted.forEach((e, i) => map.set(e.id, i + 1));
+    return map;
+  }, [data.ledgerEntries, tenant.id]);
+
+  // Resolve the underlying LedgerEntry for a real display row (match by date+amount+month).
+  function entryForRow(row: LedgerRow) {
+    return yearEntries.find(
+      (e) => e.date === row.date && e.month === row.month && Math.abs(e.amountPaid - row.amountPaid) < 0.005,
+    );
+  }
+
+  // Apply filters to display rows. Synthetic late-fee rows are shown only when
+  // statusFilter === "late-fee"; other filters apply to all rows.
+  const filtersActive =
+    !!fromDate || !!toDate || statusFilter !== "all" || !!minAmount || !!maxAmount || !!notesSearch.trim();
+
+  const filteredRows = useMemo(() => {
+    if (!filtersActive) return rows;
+    const min = minAmount ? parseFloat(minAmount) : null;
+    const max = maxAmount ? parseFloat(maxAmount) : null;
+    const needle = notesSearch.trim().toLowerCase();
+    return rows.filter((r) => {
+      const isLateFee = r.isSynthetic && r.notes === "Late Fee";
+      // Status filter
+      if (statusFilter === "late-fee") {
+        if (!isLateFee) return false;
+      } else if (statusFilter !== "all") {
+        // balance-based status for non-synthetic interpretation
+        if (r.isSynthetic) return false;
+        const bal = r.balance;
+        if (statusFilter === "paid" && bal > 0.005) return false;
+        if (statusFilter === "unpaid" && r.amountPaid > 0.005) return false;
+        if (statusFilter === "partial" && !(r.amountPaid > 0.005 && bal > 0.005)) return false;
+      }
+      // Date range (compare by YYYY-MM-DD)
+      const day = r.date.slice(0, 10);
+      if (fromDate && day < fromDate) return false;
+      if (toDate && day > toDate) return false;
+      // Amount range — uses amountPaid
+      if (min !== null && r.amountPaid < min) return false;
+      if (max !== null && r.amountPaid > max) return false;
+      // Notes search
+      if (needle && !(r.notes ?? "").toLowerCase().includes(needle)) return false;
+      return true;
+    });
+  }, [rows, filtersActive, fromDate, toDate, statusFilter, minAmount, maxAmount, notesSearch]);
+
+  function clearFilters() {
+    setFromDate("");
+    setToDate("");
+    setStatusFilter("all");
+    setMinAmount("");
+    setMaxAmount("");
+    setNotesSearch("");
+  }
+
+  function printReceiptForRow(row: LedgerRow) {
+    const entry = entryForRow(row);
+    const landlordName = data.settings.landlordName || "DP Properties LLC";
+    const seq = entry ? receiptNumberByEntryId.get(entry.id) ?? 1 : 1;
+    const d = new Date(row.date);
+    const yyyymmdd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+    const initials = `${tenant.firstName.charAt(0)}${tenant.lastName.charAt(0)}`.toUpperCase();
+    const receiptNumber = `${yyyymmdd}-${initials}-${String(seq).padStart(3, "0")}`;
+    printReceipt({
+      receiptNumber,
+      landlordName,
+      propertyAddress: property ? fullAddress(property) : "—",
+      tenantName: `${tenant.firstName} ${tenant.lastName}`,
+      paymentDate: fmtLedgerDate(row.date),
+      amountPaid: row.amountPaid,
+      paymentMethod: row.method,
+      notes: row.notes,
+    });
+  }
+
   // YTD summary — rent records + late fees for "due", ledger entries for "collected"
   const maxMonth =
     year === currentYear
@@ -285,7 +388,7 @@ export default function LedgerView() {
                 <button
                   className="export-menu-item"
                   onClick={() =>
-                    handleExport(() => printLedger(header, rows, generatedAt))
+                    handleExport(() => printLedger(header, filteredRows, generatedAt))
                   }
                 >
                   🖨 Print / Save as PDF
@@ -293,7 +396,7 @@ export default function LedgerView() {
                 <button
                   className="export-menu-item"
                   onClick={() =>
-                    handleExport(() => exportExcel(header, rows, generatedAt))
+                    handleExport(() => exportExcel(header, filteredRows, generatedAt))
                   }
                 >
                   📊 Export Excel (.xlsx)
@@ -301,7 +404,7 @@ export default function LedgerView() {
                 <button
                   className="export-menu-item"
                   onClick={() =>
-                    handleExport(() => exportCSV(header, rows, generatedAt))
+                    handleExport(() => exportCSV(header, filteredRows, generatedAt))
                   }
                 >
                   📄 Export CSV
@@ -310,6 +413,55 @@ export default function LedgerView() {
             </>
           )}
         </div>
+      </div>
+
+      {/* Filter bar */}
+      <div style={{ marginBottom: 12 }}>
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => setFiltersOpen((o) => !o)}
+        >
+          {filtersOpen ? "▾" : "▸"} Filters{filtersActive ? " (active)" : ""}
+        </button>
+        {filtersOpen && (
+          <div className="card" style={{ marginTop: 8 }}>
+            <div className="field-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div className="field" style={{ marginBottom: 10 }}>
+                <label>From</label>
+                <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              </div>
+              <div className="field" style={{ marginBottom: 10 }}>
+                <label>To</label>
+                <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+              </div>
+              <div className="field" style={{ marginBottom: 10 }}>
+                <label>Min amount</label>
+                <input type="number" inputMode="decimal" value={minAmount} onChange={(e) => setMinAmount(e.target.value)} placeholder="0" />
+              </div>
+              <div className="field" style={{ marginBottom: 10 }}>
+                <label>Max amount</label>
+                <input type="number" inputMode="decimal" value={maxAmount} onChange={(e) => setMaxAmount(e.target.value)} placeholder="—" />
+              </div>
+            </div>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Status</label>
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}>
+                <option value="all">All</option>
+                <option value="paid">Paid</option>
+                <option value="partial">Partial</option>
+                <option value="unpaid">Unpaid</option>
+                <option value="late-fee">Late Fee</option>
+              </select>
+            </div>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Notes contains</label>
+              <input type="text" value={notesSearch} onChange={(e) => setNotesSearch(e.target.value)} placeholder="Search notes…" />
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={clearFilters} disabled={!filtersActive}>
+              Clear Filters
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Legal header */}
@@ -380,10 +532,12 @@ export default function LedgerView() {
         <span>Payment History — {year}</span>
       </div>
 
-      {rows.length === 0 ? (
+      {filteredRows.length === 0 ? (
         <div className="card">
           <p style={{ color: "var(--ink-soft)", fontSize: 15 }}>
-            No payments recorded for {year}. Payments logged from the dashboard appear here automatically.
+            {filtersActive
+              ? "No payments match the current filters."
+              : `No payments recorded for ${year}. Payments logged from the dashboard appear here automatically.`}
           </p>
         </div>
       ) : (
@@ -402,10 +556,11 @@ export default function LedgerView() {
                   <th className="ledger-th-money">Balance</th>
                   <th>Method</th>
                   <th className="ledger-th-notes">Notes</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => {
+                {filteredRows.map((row) => {
                   const isOwed = row.balance > 0.005;
                   const isClear = row.balance < -0.005;
                   const balText = isClear
@@ -431,6 +586,19 @@ export default function LedgerView() {
                       </td>
                       <td className="ledger-method">{row.method}</td>
                       <td className="ledger-notes">{row.notes ?? ""}</td>
+                      <td style={{ textAlign: "center", padding: "0 6px" }}>
+                        {!row.isSynthetic && row.amountPaid > 0.005 && (
+                          <button
+                            className="btn btn-ghost btn-xs"
+                            style={{ padding: "4px 6px" }}
+                            title="Print receipt"
+                            aria-label="Print receipt"
+                            onClick={() => printReceiptForRow(row)}
+                          >
+                            <PrinterIcon size={15} />
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}

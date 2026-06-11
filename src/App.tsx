@@ -13,6 +13,10 @@ import CallPrep from "./pages/CallPrep";
 import Scanner from "./pages/Scanner";
 import Settings from "./pages/Settings";
 import Tasks from "./pages/Tasks";
+import AnnualReport from "./pages/AnnualReport";
+import YtdReport from "./pages/YtdReport";
+import MonthSummary from "./pages/MonthSummary";
+import DelinquencyReport from "./pages/DelinquencyReport";
 
 export default function App() {
   return (
@@ -32,6 +36,10 @@ export default function App() {
             <Route path="/scanner" element={<Scanner />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/tasks" element={<Tasks />} />
+            <Route path="/annual-report/:propertyId" element={<AnnualReport />} />
+            <Route path="/ytd-report/:propertyId" element={<YtdReport />} />
+            <Route path="/month-summary" element={<MonthSummary />} />
+            <Route path="/delinquency-report" element={<DelinquencyReport />} />
           </Route>
         </Routes>
       </BrowserRouter>

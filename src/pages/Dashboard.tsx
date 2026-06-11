@@ -340,6 +340,22 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* Report shortcuts */}
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginBottom: 12 }}>
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => navigate(`/month-summary?month=${viewMonth}`)}
+        >
+          Month Summary
+        </button>
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => navigate(`/delinquency-report?month=${viewMonth}`)}
+        >
+          Delinquency Report
+        </button>
+      </div>
+
       {showKpi ? (
         <KpiDashboard rows={rows} data={data} rosters={rosters} viewMonth={viewMonth} revealKey={kpiReveal} />
       ) : (

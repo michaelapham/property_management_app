@@ -83,6 +83,21 @@ export default function PropertyDetail() {
         {property.city}, {property.state} {property.zip}
       </p>
 
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => navigate(`/annual-report/${property.id}`)}
+        >
+          Annual Report
+        </button>
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => navigate(`/ytd-report/${property.id}`)}
+        >
+          YTD Report
+        </button>
+      </div>
+
       <div className="section-title">
         <span>Maintenance record</span>
       </div>
