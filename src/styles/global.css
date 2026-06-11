@@ -1251,3 +1251,9 @@ a { color: inherit; text-decoration: none; }
 
 .month-nav-btn:hover { background: #D1D5DB; border-color: #6B7280; }
 .month-nav-btn:active { background: #9CA3AF; opacity: 1; }
+
+@media (min-width: 540px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  .kpi-grid > *:nth-child(3) { grid-column: auto !important; }
+  .kpi-grid > *:last-child { grid-column: auto !important; }
+}

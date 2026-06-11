@@ -16,7 +16,7 @@ import Avatar from "../components/Avatar";
 import NoteModal from "../components/NoteModal";
 import Overlay from "../components/Overlay";
 import PaymentModal from "../components/PaymentModal";
-import { CheckIcon, PlusIcon, UploadIcon } from "../components/icons";
+import { BarChart2Icon, CheckIcon, PlusIcon, UploadIcon } from "../components/icons";
 
 // ---------- Roster snapshot types & helpers ----------
 
@@ -155,6 +155,7 @@ export default function Dashboard() {
   const importFileRef = useRef<HTMLInputElement>(null);
 
   const [viewMonth, setViewMonth] = useState(currentMonthKey);
+  const [showKpi, setShowKpi] = useState(false);
   const [pendingConfirm, setPendingConfirm] = useState<{ action: () => void } | null>(null);
   const [paymentFor, setPaymentFor] = useState<{ row: Row; defaultMode: "full" | "partial" } | null>(null);
   const [noteFor, setNoteFor] = useState<{ tenantId: string; propertyId: string; name: string } | null>(null);
@@ -311,6 +312,20 @@ export default function Dashboard() {
 
       {/* Import / Add Property */}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginBottom: 12 }}>
+        <button
+          className="btn btn-xs"
+          style={{
+            background: showKpi ? "#15803D" : "#16A34A",
+            color: "#fff",
+            border: showKpi ? "2px solid #14532D" : "2px solid transparent",
+            borderRadius: 8,
+            fontWeight: 600,
+          }}
+          onClick={() => setShowKpi((v) => !v)}
+        >
+          <BarChart2Icon size={13} />
+          Summary
+        </button>
         <button className="btn btn-ghost btn-xs" onClick={() => importFileRef.current?.click()}>
           <UploadIcon size={13} />
           Import
@@ -320,6 +335,11 @@ export default function Dashboard() {
           Add Property
         </button>
       </div>
+
+      {showKpi ? (
+        <KpiDashboard rows={rows} />
+      ) : (
+        <>
 
       {rows.length === 0 && (
         <div className="card">
@@ -437,6 +457,9 @@ export default function Dashboard() {
         </div>
       )}
 
+        </>
+      )}
+
       {/* Past-month edit confirmation */}
       {pendingConfirm && (
         <Overlay className="modal-backdrop" onBackdropClick={() => setPendingConfirm(null)}>
@@ -487,6 +510,105 @@ export default function Dashboard() {
         />
       )}
     </>
+  );
+}
+
+function KpiDashboard({ rows }: { rows: Row[] }) {
+  const hasRentAmounts = rows.some((r) => r.record.amountDue > 0);
+
+  const totalExpected = rows.reduce((s, r) => s + r.record.amountDue, 0);
+  const totalCollected = rows.reduce((s, r) => s + r.record.amountPaid, 0);
+  const unitsPaid = rows.filter((r) => rentStatusOf(r.record) === "paid").length;
+  const unitsUnpaid = rows.filter((r) => rentStatusOf(r.record) === "unpaid").length;
+  const outstanding = totalExpected - totalCollected;
+  const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0;
+
+  const fmt = (n: number) =>
+    "$" + n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+  const cardBase = {
+    borderRadius: 16,
+    padding: "18px 16px 14px",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: 4,
+  };
+
+  return (
+    <div>
+      {!hasRentAmounts && (
+        <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 12, textAlign: "center" }}>
+          Add rent amounts to tenants to see accurate totals.
+        </p>
+      )}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: 10,
+      }}
+        className="kpi-grid"
+      >
+        {/* Total Rent Expected — neutral */}
+        <div style={{ ...cardBase, background: "#fff" }}>
+          <span style={{ fontSize: 24, fontWeight: 700, color: "var(--ink)", lineHeight: 1 }}>
+            {fmt(totalExpected)}
+          </span>
+          <span style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>Total Expected</span>
+        </div>
+
+        {/* Total Collected — green */}
+        <div style={{ ...cardBase, background: "#F0FDF4" }}>
+          <span style={{ fontSize: 24, fontWeight: 700, color: "#15803D", lineHeight: 1 }}>
+            {fmt(totalCollected)}
+          </span>
+          <span style={{ fontSize: 12, color: "#166534", marginTop: 2 }}>Total Collected</span>
+        </div>
+
+        {/* Collection Rate — green, full-width */}
+        <div style={{ ...cardBase, background: "#F0FDF4", gridColumn: "1 / -1" }}>
+          <span style={{ fontSize: 28, fontWeight: 700, color: "#15803D", lineHeight: 1 }}>
+            {collectionRate}%
+          </span>
+          <span style={{ fontSize: 12, color: "#166534", marginTop: 2, marginBottom: 6 }}>Collection Rate</span>
+          <div style={{ height: 6, borderRadius: 99, background: "#D1FAE5", overflow: "hidden" }}>
+            <div
+              style={{
+                height: "100%",
+                width: `${collectionRate}%`,
+                background: "#16A34A",
+                borderRadius: 99,
+                transition: "width 0.4s ease",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Units Paid — green */}
+        <div style={{ ...cardBase, background: "#F0FDF4" }}>
+          <span style={{ fontSize: 24, fontWeight: 700, color: "#15803D", lineHeight: 1 }}>
+            {unitsPaid} / {rows.length}
+          </span>
+          <span style={{ fontSize: 12, color: "#166534", marginTop: 2 }}>Units Paid</span>
+        </div>
+
+        {/* Units Unpaid — red */}
+        <div style={{ ...cardBase, background: "#FEF2F2" }}>
+          <span style={{ fontSize: 24, fontWeight: 700, color: "#B91C1C", lineHeight: 1 }}>
+            {unitsUnpaid}
+          </span>
+          <span style={{ fontSize: 12, color: "#991B1B", marginTop: 2 }}>Units Unpaid</span>
+        </div>
+
+        {/* Outstanding Balance — red */}
+        <div style={{ ...cardBase, background: "#FEF2F2", gridColumn: "1 / -1" }}>
+          <span style={{ fontSize: 24, fontWeight: 700, color: "#B91C1C", lineHeight: 1 }}>
+            {fmt(outstanding)}
+          </span>
+          <span style={{ fontSize: 12, color: "#991B1B", marginTop: 2 }}>Outstanding Balance</span>
+        </div>
+      </div>
+    </div>
   );
 }
 

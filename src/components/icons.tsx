@@ -160,3 +160,11 @@ export const ClipboardIcon = ({ size }: IconProps) => (
     <path d="M9 12h6M9 16h4" />
   </svg>
 );
+
+export const BarChart2Icon = ({ size }: IconProps) => (
+  <svg {...svgProps(size)}>
+    <line x1="18" y1="20" x2="18" y2="10" />
+    <line x1="12" y1="20" x2="12" y2="4" />
+    <line x1="6" y1="20" x2="6" y2="14" />
+  </svg>
+);
