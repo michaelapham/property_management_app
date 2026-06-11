@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useStore } from "../data/store";
 import SpeedDial from "./SpeedDial";
+import Overlay from "./Overlay";
 import {
   BuildingIcon,
   HomeIcon,
@@ -194,7 +195,7 @@ export default function Layout() {
       </div>
 
       {showDrawer && (
-        <div className="drawer-overlay" onClick={closeDrawer}>
+        <Overlay className="drawer-overlay" onBackdropClick={closeDrawer}>
           <div className="drawer" onClick={(e) => e.stopPropagation()}>
             <div className="drawer-header">
               {drawerView !== "menu" && (
@@ -402,7 +403,7 @@ export default function Layout() {
               </div>
             )}
           </div>
-        </div>
+        </Overlay>
       )}
     </div>
   );

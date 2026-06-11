@@ -403,16 +403,20 @@ a { color: inherit; text-decoration: none; }
 .suggest-list button:last-child { border-bottom: none; }
 .suggest-list button:hover { background: var(--accent-bg); }
 
-/* ---------- Modal ---------- */
+/* ---------- Modal ----------
+   The backdrop div is sized/positioned by Overlay.tsx inline styles
+   (visualViewport API), so it stays anchored to the visible screen even
+   when the keyboard opens or the page scrolls.
+   ----------------------------------------------------------------------- */
 .modal-backdrop {
-  position: fixed;
-  inset: 0;
+  /* position/top/height set by Overlay inline styles */
   z-index: 100;
   background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   animation: fadeIn 0.15s ease;
+  overflow: hidden;
 }
 
 @media (min-width: 640px) {
@@ -425,14 +429,23 @@ a { color: inherit; text-decoration: none; }
   width: 100%;
   max-width: 480px;
   border-radius: 20px 20px 0 0;
-  padding: 22px 20px calc(22px + var(--safe-bottom));
-  max-height: 88dvh;
+  padding: 22px 20px;
+  padding-bottom: calc(22px + var(--safe-bottom));
+  /* % of the backdrop = % of visual-viewport height, keyboard-aware */
+  max-height: 90%;
   overflow-y: auto;
-  animation: slideUp 0.2s ease;
+  box-sizing: border-box;
+  animation: slideUp 0.22s ease;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 @media (min-width: 640px) {
-  .modal { border-radius: 20px; padding-bottom: 22px; }
+  .modal {
+    border-radius: 20px;
+    padding-bottom: 22px;
+    max-height: 85%;
+  }
 }
 
 .modal h3 { font-size: 20px; margin-bottom: 4px; }
@@ -762,19 +775,22 @@ a { color: inherit; text-decoration: none; }
   flex-shrink: 0;
 }
 
-/* ---------- Right slide-in drawer ---------- */
+/* ---------- Right slide-in drawer ----------
+   Like .modal-backdrop, position/top/height are set by Overlay inline styles.
+   ----------------------------------------------------------------------- */
 .drawer-overlay {
-  position: fixed;
-  inset: 0;
+  /* position/top/height set by Overlay inline styles */
   z-index: 200;
   background: rgba(0, 0, 0, 0.55);
   animation: fadeIn 0.15s ease;
+  overflow: hidden;
 }
 
 .drawer {
   position: absolute;
   top: 0;
   right: 0;
+  /* fill full visual-viewport height; never clip or overflow */
   bottom: 0;
   width: min(320px, 88vw);
   background: var(--surface);
@@ -782,6 +798,9 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
   animation: slideInRight 0.22s ease;
 }
 
