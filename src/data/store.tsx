@@ -93,6 +93,7 @@ interface StoreApi {
   addReceipt: (r: Omit<Receipt, "id">) => void;
   removeReceipt: (id: string) => void;
   updateSettings: (patch: Partial<AppSettings>) => void;
+  importData: (raw: Partial<AppData>) => void;
 }
 
 const StoreContext = createContext<StoreApi | null>(null);
@@ -307,6 +308,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setData((d) => ({ ...d, settings: { ...d.settings, ...patch } }));
   }, []);
 
+  const importData = useCallback((raw: Partial<AppData>) => {
+    const merged: AppData = {
+      ...EMPTY,
+      ...raw,
+      ledgerEntries: raw.ledgerEntries ?? [],
+      settings: raw.settings ?? { landlordName: "" },
+    };
+    setData(ensureCurrentMonthRecords(merged));
+  }, []);
+
   const api = useMemo<StoreApi>(
     () => ({
       data,
@@ -325,6 +336,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addReceipt,
       removeReceipt,
       updateSettings,
+      importData,
     }),
     [
       data,
@@ -343,6 +355,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addReceipt,
       removeReceipt,
       updateSettings,
+      importData,
     ]
   );
 

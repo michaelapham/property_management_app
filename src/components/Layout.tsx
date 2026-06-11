@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useStore } from "../data/store";
 import SpeedDial from "./SpeedDial";
@@ -7,7 +7,9 @@ import {
   BuildingIcon,
   HomeIcon,
   MenuIcon,
+  PlusIcon,
   ScanIcon,
+  UploadIcon,
   WrenchIcon,
 } from "./icons";
 
@@ -56,7 +58,30 @@ type DrawerView =
 export default function Layout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { updateSettings } = useStore();
+  const { updateSettings, importData } = useStore();
+  const importFileRef = useRef<HTMLInputElement>(null);
+
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result as string);
+        if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.properties)) {
+          alert("Invalid backup file — please choose a LandlordHQ .json export.");
+          return;
+        }
+        if (confirm("Replace all current data with this backup?")) {
+          importData(parsed);
+        }
+      } catch {
+        alert("Could not read the file. Make sure it's a valid JSON backup.");
+      }
+      e.target.value = "";
+    };
+    reader.readAsText(file);
+  }
   const head = TITLES[pathname];
 
   const [showDrawer, setShowDrawer] = useState(false);
@@ -170,7 +195,7 @@ export default function Layout() {
       <div className="app-content">
         <header className="top-bar">
           <div className="top-bar-inner">
-            <div>
+            <div style={{ minWidth: 0, flex: 1 }}>
               <h1>
                 <button
                   className="top-bar-logo-btn"
@@ -183,6 +208,31 @@ export default function Layout() {
               </h1>
               {head?.sub && <div className="subtitle">{head.sub}</div>}
             </div>
+            {pathname === "/" && (
+              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                <input
+                  ref={importFileRef}
+                  type="file"
+                  accept=".json"
+                  style={{ display: "none" }}
+                  onChange={handleImportFile}
+                />
+                <button
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => importFileRef.current?.click()}
+                >
+                  <UploadIcon size={13} />
+                  Import
+                </button>
+                <button
+                  className="btn btn-primary btn-xs"
+                  onClick={() => navigate("/properties/new")}
+                >
+                  <PlusIcon size={13} />
+                  Add Property
+                </button>
+              </div>
+            )}
             <button
               className="top-bar-menu-btn"
               aria-label="Menu"
