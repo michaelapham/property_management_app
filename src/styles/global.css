@@ -258,7 +258,7 @@ a { color: inherit; text-decoration: none; }
   margin: 22px 0 10px;
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
 }
 
 .section-title:first-child { margin-top: 4px; }

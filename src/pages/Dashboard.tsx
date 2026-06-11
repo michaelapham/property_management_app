@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStore } from "../data/store";
 import {
@@ -19,6 +19,7 @@ import {
   PlusIcon,
   ScanIcon,
   SparkleIcon,
+  UploadIcon,
   WrenchIcon,
 } from "../components/icons";
 
@@ -85,9 +86,32 @@ function StatusBadge({ property }: { property: Property }) {
 }
 
 export default function Dashboard() {
-  const { data, recordPayment, undoPayment, addNote } = useStore();
+  const { data, recordPayment, undoPayment, addNote, importData } = useStore();
   const navigate = useNavigate();
   const month = currentMonthKey();
+  const importFileRef = useRef<HTMLInputElement>(null);
+
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result as string);
+        if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.properties)) {
+          alert("Invalid backup file — please choose a LandlordHQ .json export.");
+          return;
+        }
+        if (confirm("Replace all current data with this backup?")) {
+          importData(parsed);
+        }
+      } catch {
+        alert("Could not read the file. Make sure it's a valid JSON backup.");
+      }
+      e.target.value = "";
+    };
+    reader.readAsText(file);
+  }
 
   const [paymentFor, setPaymentFor] = useState<{
     row: Row;
@@ -137,8 +161,31 @@ export default function Dashboard() {
 
   return (
     <>
+      <input
+        ref={importFileRef}
+        type="file"
+        accept=".json"
+        style={{ display: "none" }}
+        onChange={handleImportFile}
+      />
       <div className="section-title">
         <span>Rent — {monthLabel(month)}</span>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button
+            className="btn btn-ghost btn-xs"
+            onClick={() => importFileRef.current?.click()}
+          >
+            <UploadIcon size={13} />
+            Import
+          </button>
+          <button
+            className="btn btn-primary btn-xs"
+            onClick={() => navigate("/properties/new")}
+          >
+            <PlusIcon size={13} />
+            Add Property
+          </button>
+        </div>
       </div>
 
       {rows.length === 0 && (
