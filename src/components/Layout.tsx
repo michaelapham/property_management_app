@@ -25,6 +25,7 @@ const TITLES: Record<string, { title: string; sub?: string }> = {
   "/contractors": { title: "Contractors" },
   "/scanner": { title: "Receipt Scanner", sub: "Scan & keep records for taxes" },
   "/settings": { title: "Settings" },
+  "/tasks": { title: "Tasks", sub: "Property to-do list" },
 };
 
 const SUGGESTIONS_KEY = "landlordhq-suggestions";

@@ -17,6 +17,8 @@ import {
   type Property,
   type Receipt,
   type RentRecord,
+  type Task,
+  type TaskCategory,
   type Tenant,
   currentMonthKey,
 } from "../types";
@@ -31,6 +33,7 @@ const EMPTY: AppData = {
   contractors: [],
   receipts: [],
   ledgerEntries: [],
+  tasks: [],
   settings: { landlordName: "" },
 };
 
@@ -48,6 +51,7 @@ function load(): AppData {
       ...parsed,
       // Ensure new top-level keys exist for old stored data
       ledgerEntries: parsed.ledgerEntries ?? [],
+      tasks: parsed.tasks ?? [],
       settings: parsed.settings ?? { landlordName: "" },
     };
   } catch {
@@ -94,6 +98,8 @@ interface StoreApi {
   removeReceipt: (id: string) => void;
   updateSettings: (patch: Partial<AppSettings>) => void;
   importData: (raw: Partial<AppData>) => void;
+  addTask: (t: { propertyId: string; category: TaskCategory; text: string }) => void;
+  toggleTask: (id: string) => void;
 }
 
 const StoreContext = createContext<StoreApi | null>(null);
@@ -313,9 +319,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ...EMPTY,
       ...raw,
       ledgerEntries: raw.ledgerEntries ?? [],
+      tasks: raw.tasks ?? [],
       settings: raw.settings ?? { landlordName: "" },
     };
     setData(ensureCurrentMonthRecords(merged));
+  }, []);
+
+  const addTask = useCallback(
+    (t: { propertyId: string; category: TaskCategory; text: string }) => {
+      const task: Task = { ...t, id: uid(), createdAt: new Date().toISOString() };
+      setData((d) => ({ ...d, tasks: [...d.tasks, task] }));
+    },
+    []
+  );
+
+  const toggleTask = useCallback((id: string) => {
+    setData((d) => ({
+      ...d,
+      tasks: d.tasks.map((t) =>
+        t.id === id
+          ? t.completedAt
+            ? { ...t, completedAt: undefined }
+            : { ...t, completedAt: new Date().toISOString() }
+          : t
+      ),
+    }));
   }, []);
 
   const api = useMemo<StoreApi>(
@@ -337,6 +365,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeReceipt,
       updateSettings,
       importData,
+      addTask,
+      toggleTask,
     }),
     [
       data,
@@ -356,6 +386,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeReceipt,
       updateSettings,
       importData,
+      addTask,
+      toggleTask,
     ]
   );
 

@@ -12,6 +12,7 @@ import Contractors from "./pages/Contractors";
 import CallPrep from "./pages/CallPrep";
 import Scanner from "./pages/Scanner";
 import Settings from "./pages/Settings";
+import Tasks from "./pages/Tasks";
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/contractors/prepare" element={<CallPrep />} />
             <Route path="/scanner" element={<Scanner />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/tasks" element={<Tasks />} />
           </Route>
         </Routes>
       </BrowserRouter>

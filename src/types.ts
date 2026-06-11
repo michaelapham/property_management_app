@@ -152,6 +152,17 @@ export interface AppSettings {
   landlordName: string;
 }
 
+export type TaskCategory = "urgent" | "soon" | "later";
+
+export interface Task {
+  id: string;
+  propertyId: string;
+  category: TaskCategory;
+  text: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
 export interface AppData {
   properties: Property[];
   tenants: Tenant[];
@@ -160,6 +171,7 @@ export interface AppData {
   contractors: Contractor[];
   receipts: Receipt[];
   ledgerEntries: LedgerEntry[];
+  tasks: Task[];
   settings: AppSettings;
 }
 
