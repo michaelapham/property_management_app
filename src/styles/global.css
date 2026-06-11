@@ -10,13 +10,13 @@
   --accent: #2563EB;
   --accent-ink: #FFFFFF;
   --accent-bg: rgba(37, 99, 235, 0.08);
-  --green: #16A34A;
-  --green-bg: rgba(22, 163, 74, 0.10);
-  --red: #DC2626;
-  --red-bg: rgba(220, 38, 38, 0.10);
+  --green: #15803D;
+  --green-bg: #DCFCE7;
+  --red: #B91C1C;
+  --red-bg: #FEE2E2;
   --red-soft: #EF4444;
-  --yellow: #CA8A04;
-  --yellow-bg: rgba(202, 138, 4, 0.10);
+  --yellow: #B45309;
+  --yellow-bg: #FEF3C7;
   --line: #E5E7EB;
   --radius: 14px;
   --radius-sm: 10px;
@@ -367,7 +367,7 @@ a { color: inherit; text-decoration: none; }
 }
 .btn-ghost:hover:not(:disabled) { background: #F9FAFB; border-color: #9CA3AF; }
 
-.btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid rgba(220, 38, 38, 0.35); }
+.btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid #FECACA; }
 .btn-block { width: 100%; }
 .btn-xs { font-size: 12px; padding: 5px 9px; border-radius: 6px; gap: 4px; }
 .btn-sm { font-size: 13.5px; padding: 7px 12px; border-radius: 7px; }
@@ -605,7 +605,7 @@ a { color: inherit; text-decoration: none; }
 
 .banner {
   background: var(--yellow-bg);
-  border: 1px solid rgba(217, 119, 6, 0.35);
+  border: 1px solid #FDE68A;
   color: var(--yellow);
   border-radius: var(--radius-sm);
   padding: 10px 13px;
@@ -661,7 +661,7 @@ a { color: inherit; text-decoration: none; }
 
 .safety-line {
   background: var(--red-bg);
-  border: 1px solid rgba(220, 38, 38, 0.30);
+  border: 1px solid #FECACA;
   color: var(--red);
   border-radius: 8px;
   padding: 10px 13px;
