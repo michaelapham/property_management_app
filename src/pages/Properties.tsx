@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStore } from "../data/store";
 import { money } from "../utils/format";
-import { ChevronRight, PlusIcon, TrashIcon } from "../components/icons";
+import { ChevronRight, TrashIcon } from "../components/icons";
 import EmptyState, { HomeIllustration } from "../components/EmptyState";
 import SwipeRow from "../components/SwipeRow";
 import Modal from "../components/Modal";
