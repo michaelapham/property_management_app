@@ -316,7 +316,7 @@ export default function Dashboard() {
       amount === "full" || (typeof amount === "number" && amount >= remaining - 0.005);
     if (paidInFull) {
       setJustPaidId(row.tenant.id);
-      setTimeout(() => setJustPaidId(null), 800);
+      setTimeout(() => setJustPaidId(null), 1100);
     }
     if (notes.trim()) {
       addNote({
@@ -444,7 +444,7 @@ export default function Dashboard() {
                     pointerEvents: "none",
                   }}
                 >
-                  <CheckmarkBurst size={40} />
+                  <CheckmarkBurst size={64} />
                 </div>
               )}
               <LongPressWrap onLongPress={(rect) => setMenuFor({ row, rect })}>
