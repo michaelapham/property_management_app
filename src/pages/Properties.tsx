@@ -129,9 +129,6 @@ export default function Properties() {
               </div>
             );
           })}
-          <button className="fab" aria-label="Add property" onClick={() => navigate("/properties/new")}>
-            <PlusIcon size={26} />
-          </button>
         </>
       )}
 
