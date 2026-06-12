@@ -2,11 +2,15 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStore } from "../data/store";
 import { money } from "../utils/format";
-import { ChevronRight, PlusIcon } from "../components/icons";
+import { ChevronRight, PlusIcon, TrashIcon } from "../components/icons";
+import EmptyState, { HomeIllustration } from "../components/EmptyState";
+import SwipeRow from "../components/SwipeRow";
+import Modal from "../components/Modal";
 
 export default function Properties() {
-  const { data } = useStore();
+  const { data, removeProperty } = useStore();
   const navigate = useNavigate();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -27,56 +31,108 @@ export default function Properties() {
   return (
     <>
       {data.properties.length === 0 ? (
-        <div className="empty-state">
-          <div className="big">🏠</div>
-          <h3>No properties yet</h3>
-          <p>Add your first rental — address, house details, rent and tenant info.</p>
-          <button className="btn btn-primary" onClick={() => navigate("/properties/new")}>
-            <PlusIcon size={18} /> Add Property
-          </button>
-        </div>
+        <EmptyState
+          icon={<HomeIllustration />}
+          title="No properties yet"
+          subtitle="Add your first property to get started"
+          cta={{ label: "Add Property", onClick: () => navigate("/properties/new") }}
+        />
       ) : (
         <>
           {data.properties.map((p) => {
             const tenants = data.tenants.filter((t) => t.propertyId === p.id);
             return (
-              <Link key={p.id} to={`/properties/${p.id}`} className="list-row">
-                {p.photoDataUrl ? (
-                  <img
-                    src={p.photoDataUrl}
-                    alt=""
+              <SwipeRow
+                key={p.id}
+                revealWidth={88}
+                actions={
+                  <button
+                    aria-label="Delete property"
+                    onClick={() => setDeletingId(p.id)}
                     style={{
-                      width: 54,
-                      height: 54,
-                      borderRadius: 10,
-                      objectFit: "cover",
-                      flexShrink: 0,
+                      flex: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 4,
+                      background: "var(--red-soft)",
+                      color: "#fff",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      borderRadius: 0,
                     }}
-                  />
-                ) : (
-                  <div className="avatar" style={{ borderRadius: 10 }}>🏠</div>
-                )}
-                <div className="row-body">
-                  <div className="row-title">{p.street}</div>
-                  <div className="row-sub">
-                    {p.city}, {p.state} ·{" "}
-                    {tenants.length > 0
-                      ? `${tenants.map((t) => t.firstName).join(", ")} · ${money(
-                          tenants.reduce((s, t) => s + t.rentAmount, 0)
-                        )}/mo`
-                      : "Vacant"}
+                  >
+                    <TrashIcon size={20} />
+                    Delete
+                  </button>
+                }
+              >
+                <Link to={`/properties/${p.id}`} className="list-row" style={{ marginTop: 0 }}>
+                  {p.photoDataUrl ? (
+                    <img
+                      src={p.photoDataUrl}
+                      alt=""
+                      style={{
+                        width: 54,
+                        height: 54,
+                        borderRadius: 10,
+                        objectFit: "cover",
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div className="avatar" style={{ borderRadius: 10 }}>🏠</div>
+                  )}
+                  <div className="row-body">
+                    <div className="row-title">{p.street}</div>
+                    <div className="row-sub">
+                      {p.city}, {p.state} ·{" "}
+                      {tenants.length > 0
+                        ? `${tenants.map((t) => t.firstName).join(", ")} · ${money(
+                            tenants.reduce((s, t) => s + t.rentAmount, 0)
+                          )}/mo`
+                        : "Vacant"}
+                    </div>
                   </div>
-                </div>
-                <span className="chevron">
-                  <ChevronRight />
-                </span>
-              </Link>
+                  <span className="chevron">
+                    <ChevronRight />
+                  </span>
+                </Link>
+              </SwipeRow>
             );
           })}
           <button className="fab" aria-label="Add property" onClick={() => navigate("/properties/new")}>
             <PlusIcon size={26} />
           </button>
         </>
+      )}
+
+      {deletingId && (
+        <Modal
+          title="Delete this property?"
+          subtitle={data.properties.find((p) => p.id === deletingId)?.street}
+          onClose={() => setDeletingId(null)}
+        >
+          <p style={{ color: "var(--ink-soft)", fontSize: 14, marginBottom: 16 }}>
+            This removes the property and its tenants from your records.
+          </p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setDeletingId(null)}>
+              Cancel
+            </button>
+            <button
+              className="btn btn-danger"
+              style={{ flex: 1 }}
+              onClick={() => {
+                removeProperty(deletingId);
+                setDeletingId(null);
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        </Modal>
       )}
     </>
   );

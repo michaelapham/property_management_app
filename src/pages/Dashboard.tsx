@@ -17,7 +17,9 @@ import Avatar from "../components/Avatar";
 import NoteModal from "../components/NoteModal";
 import Overlay from "../components/Overlay";
 import PaymentModal from "../components/PaymentModal";
-import { BarChart2Icon, CheckIcon, PlusIcon, UploadIcon } from "../components/icons";
+import { BarChart2Icon, CheckIcon, PlusIcon, TrashIcon, UploadIcon } from "../components/icons";
+import EmptyState, { UsersIllustration } from "../components/EmptyState";
+import SwipeRow from "../components/SwipeRow";
 
 // ---------- Roster snapshot types & helpers ----------
 
@@ -151,9 +153,10 @@ function StatusBadge({ property }: { property: Property }) {
 }
 
 export default function Dashboard() {
-  const { data, undoPayment, addNote, importData, recordPaymentForMonth } = useStore();
+  const { data, undoPayment, addNote, importData, recordPaymentForMonth, removeTenant } = useStore();
   const navigate = useNavigate();
   const importFileRef = useRef<HTMLInputElement>(null);
+  const [deletingTenant, setDeletingTenant] = useState<{ id: string; name: string } | null>(null);
 
   const [viewMonth, setViewMonth] = useState(currentMonthKey);
   const [listReady, setListReady] = useState(false);
@@ -378,11 +381,12 @@ export default function Dashboard() {
       )}
 
       {listReady && rows.length === 0 && (
-        <div className="card">
-          <p style={{ color: "var(--ink-soft)", fontSize: 16 }}>
-            No tenants yet — add a tenant to a property to start tracking rent.
-          </p>
-        </div>
+        <EmptyState
+          icon={<UsersIllustration />}
+          title="No tenants yet"
+          subtitle="Add your first property to get started"
+          cta={{ label: "Add Property", onClick: () => navigate("/properties/new") }}
+        />
       )}
 
       {listReady && rows.length > 0 && (
@@ -393,8 +397,63 @@ export default function Dashboard() {
             // For StatusBadge we need a full Property; fall back to live store or a stub.
             const liveProperty = data.properties.find((p) => p.id === row.property.id);
             return (
-              <div
+              <SwipeRow
                 key={row.record.id}
+                revealWidth={status !== "paid" ? 160 : 88}
+                marginBottom={0}
+                actions={
+                  <>
+                    {status !== "paid" && (
+                      <button
+                        aria-label="Mark paid"
+                        onClick={() =>
+                          withPastConfirm(() => setPaymentFor({ row, defaultMode: "full" }))
+                        }
+                        style={{
+                          flex: 1,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 4,
+                          background: "var(--green)",
+                          color: "#fff",
+                          fontSize: 12,
+                          fontWeight: 600,
+                        }}
+                      >
+                        <CheckIcon size={20} />
+                        Paid
+                      </button>
+                    )}
+                    <button
+                      aria-label="Delete tenant"
+                      onClick={() =>
+                        setDeletingTenant({
+                          id: row.tenant.id,
+                          name: `${row.tenant.firstName} ${row.tenant.lastName}`,
+                        })
+                      }
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 4,
+                        background: "var(--red-soft)",
+                        color: "#fff",
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <TrashIcon size={20} />
+                      Delete
+                    </button>
+                  </>
+                }
+              >
+              <div
                 className={`rent-row${i % 2 === 1 ? " rent-row-alt" : ""}`}
                 style={{ cursor: "pointer", opacity: status === "paid" ? 0.45 : 1 }}
                 onClick={() => navigate(`/tenants/${row.tenant.id}`)}
@@ -488,6 +547,7 @@ export default function Dashboard() {
                   )}
                 </div>
               </div>
+              </SwipeRow>
             );
           })}
         </div>
@@ -544,6 +604,36 @@ export default function Dashboard() {
           title={`Add a Note — ${noteFor.name}`}
           onClose={() => setNoteFor(null)}
         />
+      )}
+
+      {deletingTenant && (
+        <Overlay className="modal-backdrop" onBackdropClick={() => setDeletingTenant(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 10 }}>Remove this tenant?</h2>
+            <p style={{ color: "var(--ink-soft)", fontSize: 15, marginBottom: 20 }}>
+              {deletingTenant.name} and their rent records will be removed.
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                className="btn btn-ghost"
+                style={{ flex: 1 }}
+                onClick={() => setDeletingTenant(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                style={{ flex: 1 }}
+                onClick={() => {
+                  removeTenant(deletingTenant.id);
+                  setDeletingTenant(null);
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </Overlay>
       )}
     </>
   );

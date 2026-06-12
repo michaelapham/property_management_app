@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useStore } from "../data/store";
+import { SwipeProvider } from "../contexts/SwipeContext";
 import SpeedDial from "./SpeedDial";
 import Overlay from "./Overlay";
 import PageTransition from "./PageTransition";
@@ -60,6 +61,19 @@ export default function Layout() {
   const navigate = useNavigate();
   const { updateSettings } = useStore();
   const head = TITLES[pathname];
+
+  // Frosted-glass header drop-shadow once the page is scrolled.
+  const topBarRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const onScroll = () => {
+      const el = topBarRef.current;
+      if (!el) return;
+      el.classList.toggle("top-bar--scrolled", window.scrollY > 8);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const [showDrawer, setShowDrawer] = useState(false);
   const [drawerView, setDrawerView] = useState<DrawerView>("menu");
@@ -170,7 +184,7 @@ export default function Layout() {
         ))}
       </nav>
       <div className="app-content">
-        <header className="top-bar">
+        <header className="top-bar" ref={topBarRef}>
           <div className="top-bar-inner">
             <div style={{ minWidth: 0, flex: 1 }}>
               <h1>
@@ -195,9 +209,11 @@ export default function Layout() {
           </div>
         </header>
         <main className="app-main">
-          <PageTransition>
-            <Outlet />
-          </PageTransition>
+          <SwipeProvider>
+            <PageTransition>
+              <Outlet />
+            </PageTransition>
+          </SwipeProvider>
         </main>
         <SpeedDial />
       </div>

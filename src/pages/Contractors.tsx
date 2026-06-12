@@ -4,7 +4,10 @@ import { useStore } from "../data/store";
 import type { Trade } from "../types";
 import CallButton from "../components/CallButton";
 import Modal from "../components/Modal";
-import { PlusIcon, SparkleIcon, StarIcon, TrashIcon } from "../components/icons";
+import SwipeRow from "../components/SwipeRow";
+import EmptyState, { WrenchIllustration } from "../components/EmptyState";
+import { PhoneIcon, PlusIcon, SparkleIcon, StarIcon, TrashIcon } from "../components/icons";
+import { telHref } from "../utils/format";
 
 export const TRADES: { value: Trade; label: string; emoji: string }[] = [
   { value: "plumber", label: "Plumber", emoji: "🔧" },
@@ -75,44 +78,92 @@ export default function Contractors() {
           <div className="skeleton-row" />
         </div>
       ) : saved.length === 0 ? (
-        <div className="card">
-          <p style={{ color: "var(--ink-soft)", fontSize: 15 }}>
-            No saved {tradeLabel(selectedTrade)} yet — tap Add to save the ones you trust for one-tap calling.
-          </p>
-        </div>
+        <EmptyState
+          icon={<WrenchIllustration />}
+          title={`No ${tradeLabel(selectedTrade)}s saved`}
+          subtitle="Tap Add to save the pros you trust for one-tap calling."
+          cta={{ label: "Add Contractor", onClick: () => setShowAdd(true) }}
+        />
       ) : (
         saved.map((c) => (
-          <div key={c.id} className="card" style={{ marginBottom: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div className="row-body">
-                <div className="row-title">{c.name}</div>
-                <div className="contractor-meta">
-                  {c.hours && <span>🕐 {c.hours}</span>}
-                  {c.rating !== undefined && (
-                    <span><StarIcon size={12} /> {c.rating.toFixed(1)}</span>
-                  )}
-                  {c.notes && <span>{c.notes}</span>}
+          <SwipeRow
+            key={c.id}
+            revealWidth={160}
+            actions={
+              <>
+                <a
+                  href={telHref(c.phone)}
+                  aria-label={`Call ${c.name}`}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 4,
+                    background: "var(--green)",
+                    color: "#fff",
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  <PhoneIcon size={20} />
+                  Call
+                </a>
+                <button
+                  aria-label="Remove"
+                  onClick={() => setDeletingId(c.id)}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 4,
+                    background: "var(--red-soft)",
+                    color: "#fff",
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  <TrashIcon size={20} />
+                  Delete
+                </button>
+              </>
+            }
+          >
+            <div className="card" style={{ marginBottom: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div className="row-body">
+                  <div className="row-title">{c.name}</div>
+                  <div className="contractor-meta">
+                    {c.hours && <span>🕐 {c.hours}</span>}
+                    {c.rating !== undefined && (
+                      <span><StarIcon size={12} /> {c.rating.toFixed(1)}</span>
+                    )}
+                    {c.notes && <span>{c.notes}</span>}
+                  </div>
                 </div>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  aria-label="Remove"
+                  onClick={() => setDeletingId(c.id)}
+                >
+                  <TrashIcon size={15} />
+                </button>
               </div>
-              <button
-                className="btn btn-ghost btn-sm"
-                aria-label="Remove"
-                onClick={() => setDeletingId(c.id)}
-              >
-                <TrashIcon size={15} />
-              </button>
+              <div style={{ marginTop: 10 }}>
+                <CallButton
+                  phone={c.phone}
+                  label={`Call — ${c.phone}`}
+                  calleeName={c.name}
+                  variant="green"
+                  block
+                  small
+                />
+              </div>
             </div>
-            <div style={{ marginTop: 10 }}>
-              <CallButton
-                phone={c.phone}
-                label={`Call — ${c.phone}`}
-                calleeName={c.name}
-                variant="green"
-                block
-                small
-              />
-            </div>
-          </div>
+          </SwipeRow>
         ))
       )}
 

@@ -13,6 +13,7 @@ import {
   type LedgerRow,
 } from "../utils/exportLedger";
 import { printReceipt } from "../utils/reportExport";
+import EmptyState, { FileTextIllustration } from "../components/EmptyState";
 
 type StatusFilter = "all" | "paid" | "partial" | "unpaid" | "late-fee";
 
@@ -535,13 +536,19 @@ export default function LedgerView() {
       </div>
 
       {filteredRows.length === 0 ? (
-        <div className="card">
-          <p style={{ color: "var(--ink-soft)", fontSize: 15 }}>
-            {filtersActive
-              ? "No payments match the current filters."
-              : `No payments recorded for ${year}. Payments logged from the dashboard appear here automatically.`}
-          </p>
-        </div>
+        filtersActive ? (
+          <div className="card">
+            <p style={{ color: "var(--ink-soft)", fontSize: 15 }}>
+              No payments match the current filters.
+            </p>
+          </div>
+        ) : (
+          <EmptyState
+            icon={<FileTextIllustration />}
+            title="No payments recorded"
+            subtitle="Payments will appear here once recorded"
+          />
+        )
       ) : (
         <div
           className="card"
