@@ -37,7 +37,7 @@ export default function ContextMenu({ items, anchorRect, onClose }: Props) {
           boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
           zIndex: 200,
           padding: "8px 0",
-          animation: "ctxMenuIn 180ms cubic-bezier(0.34, 1.56, 0.64, 1) both",
+          animation: "ctxMenuIn 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both",
         }}
       >
         {items.map((item, i) => (

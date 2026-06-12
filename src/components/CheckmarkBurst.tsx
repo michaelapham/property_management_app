@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 export default function CheckmarkBurst({ size = 28, onDone }: { size?: number; onDone?: () => void }) {
   useEffect(() => {
-    const t = setTimeout(() => onDone?.(), 500);
+    const t = setTimeout(() => onDone?.(), 680);
     return () => clearTimeout(t);
   }, [onDone]);
 
@@ -17,7 +17,7 @@ export default function CheckmarkBurst({ size = 28, onDone }: { size?: number; o
         fill="none" stroke="#15803D" strokeWidth={2.5}
         strokeDasharray={circ}
         strokeDashoffset={circ}
-        style={{ animation: "circDraw 300ms ease-out forwards" }}
+        style={{ animation: "circDraw 480ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards" }}
       />
       {/* Checkmark draws after circle */}
       <polyline
@@ -25,7 +25,7 @@ export default function CheckmarkBurst({ size = 28, onDone }: { size?: number; o
         fill="none" stroke="#15803D" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
         strokeDasharray={size}
         strokeDashoffset={size}
-        style={{ animation: "checkDraw 200ms ease-out 280ms forwards" }}
+        style={{ animation: "checkDraw 320ms cubic-bezier(0.25, 0.46, 0.45, 0.94) 200ms forwards" }}
       />
     </svg>
   );

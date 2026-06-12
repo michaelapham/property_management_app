@@ -211,7 +211,7 @@ export default function Dashboard() {
 
   // Brief skeleton on first mount of the Today list
   useEffect(() => {
-    const t = setTimeout(() => setListReady(true), 200);
+    const t = setTimeout(() => setListReady(true), 320);
     return () => clearTimeout(t);
   }, []);
 
@@ -316,7 +316,7 @@ export default function Dashboard() {
       amount === "full" || (typeof amount === "number" && amount >= remaining - 0.005);
     if (paidInFull) {
       setJustPaidId(row.tenant.id);
-      setTimeout(() => setJustPaidId(null), 600);
+      setTimeout(() => setJustPaidId(null), 800);
     }
     if (notes.trim()) {
       addNote({
@@ -1003,7 +1003,7 @@ function KpiCard({
             height: "100%",
             width: animating ? `${progressPct}%` : "0%",
             background: "#16A34A",
-            transition: "width 0.8s ease-out 0.2s",
+            transition: "width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s",
           }} />
         </div>
       )}
@@ -1046,7 +1046,7 @@ function DonutChart({ pct, isNA }: { pct: number; isNA?: boolean }) {
           strokeLinecap="round"
           strokeDasharray={`${dash} ${CIRC}`}
           strokeDashoffset={CIRC / 4}
-          style={{ transition: "stroke-dasharray 0.8s ease-in-out" }}
+          style={{ transition: "stroke-dasharray 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)" }}
         />
         {/* center text — "N/A" when no data, percentage otherwise */}
         <text
@@ -1122,7 +1122,7 @@ function RevenueBar({ collected, outstanding, expected }: { collected: number; o
           alignItems: "center",
           justifyContent: "center",
           overflow: "hidden",
-          transition: "width 0.6s ease-out",
+          transition: "width 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
           flexShrink: 0,
         }}>
           {collectedInside && (
@@ -1139,7 +1139,7 @@ function RevenueBar({ collected, outstanding, expected }: { collected: number; o
           alignItems: "center",
           justifyContent: "center",
           overflow: "hidden",
-          transition: "width 0.6s ease-out 0.05s",
+          transition: "width 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.05s",
           flexShrink: 0,
         }}>
           {outstandingInside && (
@@ -1379,7 +1379,7 @@ function KpiDashboard({ rows, data, rosters, viewMonth, revealKey }: {
                     width: animating ? `${collectionRate}%` : "0%",
                     background: "#16A34A",
                     borderRadius: 99,
-                    transition: "width 0.8s ease-out",
+                    transition: "width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
                   }} />
                 </div>
               </div>

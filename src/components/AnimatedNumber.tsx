@@ -19,18 +19,18 @@ export default function AnimatedNumber({ value, className, style }: Props) {
     const t = setTimeout(() => {
       setDisplayed(value);
       setPrev(null);
-    }, 150);
+    }, 220);
     return () => clearTimeout(t);
   }, [value]);
 
   return (
     <span className={className} style={{ position: "relative", display: "inline-block", ...style }}>
       {prev !== null && (
-        <span key={prev} style={{ position: "absolute", inset: 0, animation: "numExit 150ms forwards" }}>
+        <span key={prev} style={{ position: "absolute", inset: 0, animation: "numExit 220ms forwards" }}>
           {prev}
         </span>
       )}
-      <span key={displayed} style={{ animation: prev !== null ? "numEnter 150ms 100ms both" : undefined }}>
+      <span key={displayed} style={{ animation: prev !== null ? "numEnter 220ms 120ms both" : undefined }}>
         {displayed}
       </span>
     </span>

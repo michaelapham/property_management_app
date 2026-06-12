@@ -20,10 +20,10 @@ export default function Modal({ title, subtitle, onClose, children }: ModalProps
     setClosing(true);
     if (sheetRef.current) {
       sheetRef.current.style.transition =
-        "transform 280ms cubic-bezier(0.32, 0.72, 0, 1)";
+        "transform 380ms cubic-bezier(0.4, 0, 1, 1)";
       sheetRef.current.style.transform = "translateY(100%)";
     }
-    setTimeout(onClose, 250);
+    setTimeout(onClose, 360);
   }
 
   function onPointerDown(e: React.PointerEvent) {
@@ -52,7 +52,7 @@ export default function Modal({ title, subtitle, onClose, children }: ModalProps
       handleClose();
     } else if (sheetRef.current) {
       sheetRef.current.style.transition =
-        "transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1)";
+        "transform 480ms cubic-bezier(0.34, 1.15, 0.64, 1)";
       sheetRef.current.style.transform = "translateY(0)";
     }
   }

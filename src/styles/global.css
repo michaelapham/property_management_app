@@ -102,7 +102,7 @@ a { color: inherit; text-decoration: none; }
   color: var(--ink);
   padding: 16px 16px;
   padding-top: calc(16px + env(safe-area-inset-top, 0px));
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .top-bar--scrolled {
@@ -167,7 +167,7 @@ a { color: inherit; text-decoration: none; }
   font-size: 12px;
   font-weight: 400;
   color: #4B5563; /* gray-600 */
-  transition: color 0.15s;
+  transition: color 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .tab-nav a.active { color: var(--ink); }
@@ -281,7 +281,7 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  transition: transform 0.08s, border-color 0.15s;
+  transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1), border-color 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .list-row:hover { border-color: var(--ink-faint); }
@@ -347,7 +347,7 @@ a { color: inherit; text-decoration: none; }
   font-size: 15px;
   padding: 10px 16px;
   border-radius: 8px; /* rounded-lg */
-  transition: transform 0.08s, opacity 0.15s;
+  transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1), opacity 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
   text-align: center;
   letter-spacing: 0;
 }
@@ -420,7 +420,7 @@ a { color: inherit; text-decoration: none; }
   border-radius: var(--radius-sm);
   background: var(--bg);
   font-size: 17px; /* >=16px prevents iOS zoom */
-  transition: border-color 0.15s;
+  transition: border-color 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .field input::placeholder,
@@ -485,7 +485,7 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  animation: fadeIn 0.15s ease;
+  animation: fadeIn 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
   overflow: hidden;
 }
 
@@ -505,7 +505,7 @@ a { color: inherit; text-decoration: none; }
   max-height: 90%;
   overflow-y: auto;
   box-sizing: border-box;
-  animation: slideUp 0.22s ease;
+  animation: slideUp 380ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
@@ -654,7 +654,7 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   flex-direction: column;
   gap: 7px;
-  transition: transform 0.08s, border-color 0.15s;
+  transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1), border-color 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 .quick-action:hover { border-color: var(--ink-faint); }
 .quick-action:active { transform: scale(0.97); }
@@ -866,7 +866,7 @@ a { color: inherit; text-decoration: none; }
   /* position/top/height set by Overlay inline styles */
   z-index: 200;
   background: rgba(0, 0, 0, 0.40);
-  animation: fadeIn 0.15s ease;
+  animation: fadeIn 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
   overflow: hidden;
 }
 
@@ -885,7 +885,7 @@ a { color: inherit; text-decoration: none; }
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   box-sizing: border-box;
-  animation: slideInRight 0.22s ease;
+  animation: slideInRight 380ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 @keyframes slideInRight {
@@ -970,7 +970,7 @@ a { color: inherit; text-decoration: none; }
   border-radius: 9999px;
   cursor: pointer;
   white-space: nowrap;
-  transition: opacity 0.15s;
+  transition: opacity 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .status-badge:active { opacity: 0.75; }
@@ -1285,23 +1285,30 @@ button, [role="button"], a, .card-tap {
   touch-action: manipulation;
 }
 
+/* Tap spring-back — deliberate, weighted */
 button, [role="button"], a {
-  transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 380ms cubic-bezier(0.34, 1.2, 0.64, 1);
 }
 
+/* Press-down — quick compression */
 button:active, [role="button"]:active, a:active {
-  transform: scale(0.96);
-  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform: scale(0.97);
+  transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* FAB — more pronounced, longer spring-back */
 .fab:active, .speed-dial-fab:active {
-  transform: scale(0.92);
+  transform: scale(0.94);
+  transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fab, .speed-dial-fab {
+  transition: transform 420ms cubic-bezier(0.34, 1.2, 0.64, 1), opacity 260ms cubic-bezier(0.4, 0, 1, 1);
 }
 
-/* Interactive card lift — applied only to tappable cards */
+/* Interactive card lift — hover slow enter, press quick, release weighted */
 .card-interactive {
   will-change: transform;
-  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+  transition: transform 420ms cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 420ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 .card-interactive:hover {
   transform: scale(1.01);
@@ -1310,28 +1317,28 @@ button:active, [role="button"]:active, a:active {
 .card-interactive:active {
   transform: scale(0.98);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  transition: transform 120ms ease-in, box-shadow 120ms ease-in;
+  transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Page transitions */
+/* Page transitions — smooth deceleration, no spring overshoot */
 .page-transition {
   will-change: transform, opacity;
 }
 .page-enter {
-  animation: pageEnter 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: pageEnter 420ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 .page-exit {
-  animation: pageExit 200ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: pageExit 320ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 .page-enter-back {
-  animation: pageEnterBack 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: pageEnterBack 420ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 .page-exit-back {
-  animation: pageExitBack 200ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: pageExitBack 320ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 @keyframes pageEnter {
-  from { transform: translateX(24px); opacity: 0; }
+  from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
 @keyframes pageExit {
@@ -1344,14 +1351,14 @@ button:active, [role="button"]:active, a:active {
 }
 @keyframes pageExitBack {
   from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(24px); opacity: 0; }
+  to { transform: translateX(100%); opacity: 0; }
 }
 
-/* AnimatedNumber */
+/* AnimatedNumber — cross-fade between values */
 @keyframes numExit { from { opacity: 1; } to { opacity: 0; } }
 @keyframes numEnter { from { opacity: 0; } to { opacity: 1; } }
 
-/* Skeleton loaders */
+/* Skeleton loaders — slower shimmer, more graceful */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -1359,16 +1366,16 @@ button:active, [role="button"]:active, a:active {
 .skeleton-row {
   background: linear-gradient(90deg, #E5E7EB 25%, #F3F4F6 50%, #E5E7EB 75%);
   background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
+  animation: shimmer 2.2s linear infinite;
   border-radius: 12px;
   height: 72px;
   margin-bottom: 10px;
 }
 .skeleton-fade-out {
-  animation: fadeOut 180ms forwards;
+  animation: fadeOut 220ms ease-in forwards;
 }
 .skeleton-fade-in {
-  animation: fadeIn 180ms forwards;
+  animation: fadeIn 280ms ease-out forwards;
 }
 @keyframes fadeOut { to { opacity: 0; } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -1381,20 +1388,20 @@ button:active, [role="button"]:active, a:active {
   to { stroke-dashoffset: 0; }
 }
 
-/* ---------- Tier 3: page entry stagger ---------- */
+/* ---------- Tier 3: page entry stagger — more travel, slower settle ---------- */
 @keyframes itemStagger {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .stagger-item {
-  animation: itemStagger 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: itemStagger 380ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
   animation-delay: var(--stagger-delay, 0ms);
 }
 
-/* ---------- Tier 3: context menu ---------- */
+/* ---------- Tier 3: context menu — deliberate appear/dismiss ---------- */
 @keyframes ctxMenuIn {
-  from { opacity: 0; transform: scale(0.92); }
+  from { opacity: 0; transform: scale(0.88); }
   to { opacity: 1; transform: scale(1); }
 }
 
