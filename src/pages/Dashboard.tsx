@@ -18,7 +18,7 @@ import NoteModal from "../components/NoteModal";
 import Overlay from "../components/Overlay";
 import PaymentModal from "../components/PaymentModal";
 import ConfirmSheet from "../components/ConfirmSheet";
-import { BarChart2Icon, CheckIcon, PlusIcon, TrashIcon, UploadIcon } from "../components/icons";
+import { BarChart2Icon, CheckIcon, PlusIcon, UploadIcon } from "../components/icons";
 import EmptyState, { UsersIllustration } from "../components/EmptyState";
 import SwipeRow from "../components/SwipeRow";
 import CheckmarkBurst from "../components/CheckmarkBurst";
@@ -449,40 +449,14 @@ export default function Dashboard() {
               )}
               <LongPressWrap onLongPress={(rect) => setMenuFor({ row, rect })}>
               <SwipeRow
-                revealWidth={status !== "paid" ? 160 : 88}
+                revealWidth={status !== "paid" ? 88 : 0}
                 marginBottom={0}
                 actions={
-                  <>
-                    {status !== "paid" && (
-                      <button
-                        aria-label="Mark paid"
-                        onClick={() =>
-                          withPastConfirm(() => setPaymentFor({ row, defaultMode: "full" }))
-                        }
-                        style={{
-                          flex: 1,
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 4,
-                          background: "var(--green)",
-                          color: "#fff",
-                          fontSize: 12,
-                          fontWeight: 600,
-                        }}
-                      >
-                        <CheckIcon size={20} />
-                        Paid
-                      </button>
-                    )}
+                  status !== "paid" ? (
                     <button
-                      aria-label="Delete tenant"
+                      aria-label="Mark paid"
                       onClick={() =>
-                        setDeletingTenant({
-                          id: row.tenant.id,
-                          name: `${row.tenant.firstName} ${row.tenant.lastName}`,
-                        })
+                        withPastConfirm(() => setPaymentFor({ row, defaultMode: "full" }))
                       }
                       style={{
                         flex: 1,
@@ -491,16 +465,16 @@ export default function Dashboard() {
                         alignItems: "center",
                         justifyContent: "center",
                         gap: 4,
-                        background: "var(--red-soft)",
+                        background: "var(--green)",
                         color: "#fff",
                         fontSize: 12,
                         fontWeight: 600,
                       }}
                     >
-                      <TrashIcon size={20} />
-                      Delete
+                      <CheckIcon size={20} />
+                      Paid
                     </button>
-                  </>
+                  ) : <></>
                 }
               >
               <div

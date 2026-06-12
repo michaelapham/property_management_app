@@ -216,6 +216,14 @@ export default function Layout() {
           </SwipeProvider>
         </main>
         <SpeedDial />
+        {pathname === "/tasks" && (
+          <button
+            className="task-add-bar"
+            onClick={() => window.dispatchEvent(new CustomEvent("landlord:open-task-modal"))}
+          >
+            + Add Task
+          </button>
+        )}
       </div>
 
       {showDrawer && (

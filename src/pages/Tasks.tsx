@@ -95,6 +95,12 @@ export default function Tasks() {
   const properties = data.properties;
   const canSubmit = inputText.trim().length > 0 && !!modalProperty;
 
+  useEffect(() => {
+    function handleOpen() { openModal(); }
+    window.addEventListener("landlord:open-task-modal", handleOpen);
+    return () => window.removeEventListener("landlord:open-task-modal", handleOpen);
+  }, []);
+
   return (
     <div style={{ padding: "16px 16px 96px" }}>
       {groups.length === 0 && completedTasks.length === 0 && (
@@ -181,11 +187,6 @@ export default function Tasks() {
           )}
         </div>
       )}
-
-      {/* Add Task bar — sits left of the FAB at the bottom */}
-      <button className="task-add-bar" onClick={openModal}>
-        + Add Task
-      </button>
 
       {showModal && (
         <Overlay className="modal-backdrop" onBackdropClick={closeModal}>
