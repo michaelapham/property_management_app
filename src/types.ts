@@ -231,6 +231,17 @@ export interface TenantNotice {
   notes?: string;
 }
 
+// ── Late Fee Decision ─────────────────────────────────────────────────────────
+
+export interface LateFeeDecision {
+  id: string;
+  tenantId: string;
+  month: string;
+  charged: boolean;
+  amount?: number; // only present when charged=true
+  recordedAt: string;
+}
+
 export interface AppData {
   properties: Property[];
   tenants: Tenant[];
@@ -241,6 +252,7 @@ export interface AppData {
   ledgerEntries: LedgerEntry[];
   tasks: Task[];
   settings: AppSettings;
+  lateFeeDecisions: LateFeeDecision[];
 }
 
 export function rentStatusOf(r: RentRecord): RentStatus {

@@ -13,6 +13,7 @@ import {
   type Contractor,
   type DepositDeduction,
   type DepositInfo,
+  type LateFeeDecision,
   type LedgerEntry,
   type Note,
   type PaymentMethod,
@@ -53,6 +54,7 @@ const EMPTY: AppData = {
   ledgerEntries: [],
   tasks: [],
   settings: { landlordName: "" },
+  lateFeeDecisions: [],
 };
 
 export function uid(): string {
@@ -84,6 +86,7 @@ function load(): AppData {
       ledgerEntries: parsed.ledgerEntries ?? [],
       tasks: parsed.tasks ?? [],
       settings: parsed.settings ?? { landlordName: "" },
+      lateFeeDecisions: parsed.lateFeeDecisions ?? [],
     };
   } catch {
     // Guard: corrupted localStorage — fall back to empty state rather than crashing
@@ -145,6 +148,7 @@ interface StoreApi {
   removeDepositDeduction: (tenantId: string, deductionId: string) => void;
   addTenantNotice: (tenantId: string, n: Omit<TenantNotice, "id">) => void;
   removeTenantNotice: (tenantId: string, noticeId: string) => void;
+  recordLateFeeDecision: (tenantId: string, month: string, charged: boolean, amount?: number) => void;
 }
 
 const StoreContext = createContext<StoreApi | null>(null);
@@ -437,6 +441,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ledgerEntries: raw.ledgerEntries ?? [],
       tasks: raw.tasks ?? [],
       settings: raw.settings ?? { landlordName: "" },
+      lateFeeDecisions: raw.lateFeeDecisions ?? [],
     };
     setData(ensureCurrentMonthRecords(merged));
   }, []);
@@ -515,6 +520,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const recordLateFeeDecision = useCallback(
+    (tenantId: string, month: string, charged: boolean, amount?: number) => {
+      setData((d) => {
+        // Guard: don't overwrite an existing decision for the same tenant+month
+        if ((d.lateFeeDecisions ?? []).some((lf) => lf.tenantId === tenantId && lf.month === month)) return d;
+        const decision: LateFeeDecision = {
+          id: uid(),
+          tenantId,
+          month,
+          charged,
+          amount: charged ? (amount ?? 0) : undefined,
+          recordedAt: new Date().toISOString(),
+        };
+        return { ...d, lateFeeDecisions: [...(d.lateFeeDecisions ?? []), decision] };
+      });
+    },
+    []
+  );
+
   const removeTenantNotice = useCallback((tenantId: string, noticeId: string) => {
     setData((d) => ({
       ...d,
@@ -575,6 +599,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeDepositDeduction,
       addTenantNotice,
       removeTenantNotice,
+      recordLateFeeDecision,
     }),
     [
       data,
@@ -603,6 +628,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeDepositDeduction,
       addTenantNotice,
       removeTenantNotice,
+      recordLateFeeDecision,
     ]
   );
 

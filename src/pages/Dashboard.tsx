@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStore } from "../data/store";
+import LateFeeSheet from "../components/LateFeeSheet";
 import {
   currentMonthKey,
   rentStatusOf,
@@ -174,7 +175,7 @@ function StatusBadge({ property }: { property: Property }) {
 }
 
 export default function Dashboard() {
-  const { data, undoPayment, addNote, importData, recordPaymentForMonth, removeTenant } = useStore();
+  const { data, undoPayment, addNote, importData, recordPaymentForMonth, removeTenant, recordLateFeeDecision } = useStore();
   const navigate = useNavigate();
   const importFileRef = useRef<HTMLInputElement>(null);
   const [deletingTenant, setDeletingTenant] = useState<{ id: string; name: string } | null>(null);
@@ -189,6 +190,12 @@ export default function Dashboard() {
   const [noteFor, setNoteFor] = useState<{ tenantId: string; propertyId: string; name: string } | null>(null);
   const [justPaidId, setJustPaidId] = useState<string | null>(null);
   const [menuFor, setMenuFor] = useState<{ row: Row; rect: DOMRect } | null>(null);
+  const [lateFeePromptFor, setLateFeePromptFor] = useState<{
+    tenantId: string;
+    month: string;
+    tenantName: string;
+    suggestedFee: number;
+  } | null>(null);
 
   // Roster snapshots: frozen tenant+property list per past/first-written month.
   const [rosters, setRosters] = useState<Record<string, RosterEntry[]>>(loadRosters);
@@ -328,6 +335,30 @@ export default function Dashboard() {
       });
     }
     setPaymentFor(null);
+
+    // Prompt for late fee if: settings enabled, past grace period, no decision yet this month
+    const fullTenant = data.tenants.find((t) => t.id === row.tenant.id);
+    const lfs = fullTenant?.lateFeeSettings;
+    if (lfs?.enabled && lfs.feeAmount > 0) {
+      const [y, m] = viewMonth.split("-").map(Number);
+      const graceCutoff = new Date(y, m - 1, 1 + lfs.gracePeriodDays);
+      const isLate = Date.now() > graceCutoff.getTime();
+      const alreadyDecided = data.lateFeeDecisions.some(
+        (d) => d.tenantId === row.tenant.id && d.month === viewMonth
+      );
+      if (isLate && !alreadyDecided) {
+        const suggestedFee =
+          lfs.feeType === "percent"
+            ? Math.round(fullTenant!.rentAmount * lfs.feeAmount) / 100
+            : lfs.feeAmount;
+        setLateFeePromptFor({
+          tenantId: row.tenant.id,
+          month: viewMonth,
+          tenantName: `${row.tenant.firstName} ${row.tenant.lastName}`,
+          suggestedFee,
+        });
+      }
+    }
   }
 
   return (
@@ -679,6 +710,21 @@ export default function Dashboard() {
           propertyId={noteFor.propertyId}
           title={`Add a Note — ${noteFor.name}`}
           onClose={() => setNoteFor(null)}
+        />
+      )}
+
+      {lateFeePromptFor && (
+        <LateFeeSheet
+          tenantName={lateFeePromptFor.tenantName}
+          month={lateFeePromptFor.month}
+          suggestedFee={lateFeePromptFor.suggestedFee}
+          onCharged={(amount) =>
+            recordLateFeeDecision(lateFeePromptFor.tenantId, lateFeePromptFor.month, true, amount)
+          }
+          onWaived={() =>
+            recordLateFeeDecision(lateFeePromptFor.tenantId, lateFeePromptFor.month, false)
+          }
+          onClose={() => setLateFeePromptFor(null)}
         />
       )}
 

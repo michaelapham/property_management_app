@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useStore } from "../data/store";
-import { PAYMENT_METHOD_LABEL } from "../types";
+import { PAYMENT_METHOD_LABEL, type RentRecord } from "../types";
 import { fullAddress, money } from "../utils/format";
 import { lateFeeDate, lateFeeForMonth, monthName, prevMonthKey } from "../utils/tenantCalc";
 import { BookIcon, ChevronLeft, DownloadIcon, SpinnerIcon } from "../components/icons";
@@ -100,7 +100,18 @@ export default function LedgerView() {
     [data.ledgerEntries, tenant.id, year]
   );
 
-  // Build display rows with balance-forward and late-fee synthetic rows injected.
+  // Decision-aware fee: if a real late fee decision exists for this month, use it;
+  // otherwise fall back to the calculated synthetic fee.
+  // tenant! is safe — there is an early return above that guards the null case.
+  const resolvedFee = (month: string, rec: RentRecord | undefined): number => {
+    const dec = data.lateFeeDecisions.find(
+      (d) => d.tenantId === tenant!.id && d.month === month
+    );
+    if (dec) return dec.charged ? (dec.amount ?? 0) : 0;
+    return rec ? lateFeeForMonth(tenant!, month, rec) : 0;
+  };
+
+  // Build display rows with balance-forward and late-fee rows injected.
   // Two-pass algorithm:
   //   Pass 1 — compute each month's opening balance (includes prior-year outstanding).
   //   Pass 2 — build display rows only for months that have ledger entries.
@@ -119,7 +130,7 @@ export default function LedgerView() {
     for (const rec of data.rentRecords.filter(
       (r) => r.tenantId === tenant.id && r.month < `${year}-01`
     )) {
-      const fee = lateFeeForMonth(tenant, rec.month, rec);
+      const fee = resolvedFee(rec.month, rec);
       bal += rec.amountDue + fee - rec.amountPaid;
     }
     const monthOpeningBalance = new Map<string, number>();
@@ -127,7 +138,7 @@ export default function LedgerView() {
       monthOpeningBalance.set(month, Math.max(0, bal));
       const rec = recordByMonth.get(month);
       const due = rec?.amountDue ?? 0;
-      const fee = rec ? lateFeeForMonth(tenant, month, rec) : 0;
+      const fee = resolvedFee(month, rec);
       const paid = yearEntries
         .filter((e) => e.month === month)
         .reduce((s, e) => s + e.amountPaid, 0);
@@ -158,14 +169,10 @@ export default function LedgerView() {
       const due = record?.amountDue ?? 0;
       const openingBalance = monthOpeningBalance.get(month) ?? 0;
 
-      // Sync runningBalance to openingBalance on first month with entries,
-      // or if it drifted (e.g. months with records but no entries in between).
       if (!balanceInitialized) {
         runningBalance = openingBalance;
         balanceInitialized = true;
       } else {
-        // Advance runningBalance through any months between last processed and now
-        // (they have no entries, so no display rows, but they add to the balance)
         runningBalance = openingBalance;
       }
 
@@ -188,22 +195,57 @@ export default function LedgerView() {
       // Add current month's rent charge to running balance
       runningBalance += due;
 
-      // Late Fee synthetic row
-      const fee = record ? lateFeeForMonth(tenant, month, record) : 0;
-      if (fee > 0.005) {
-        runningBalance += fee;
-        rowNum++;
-        result.push({
-          rowNum,
-          date: lateFeeDate(month, tenant.lateFeeSettings?.gracePeriodDays ?? 5).toISOString(),
-          month,
-          amountDue: fee,
-          amountPaid: 0,
-          balance: runningBalance,
-          method: "—",
-          notes: "Late Fee",
-          isSynthetic: true,
-        });
+      // Late fee row — real decision takes priority over synthetic calculation
+      const dec = data.lateFeeDecisions.find(
+        (d) => d.tenantId === tenant.id && d.month === month
+      );
+      if (dec) {
+        if (dec.charged && (dec.amount ?? 0) > 0.005) {
+          runningBalance += dec.amount!;
+          rowNum++;
+          result.push({
+            rowNum,
+            date: dec.recordedAt,
+            month,
+            amountDue: dec.amount!,
+            amountPaid: 0,
+            balance: runningBalance,
+            method: "—",
+            notes: "Late Fee Charged",
+            isSynthetic: true,
+          });
+        } else if (!dec.charged) {
+          rowNum++;
+          result.push({
+            rowNum,
+            date: dec.recordedAt,
+            month,
+            amountDue: 0,
+            amountPaid: 0,
+            balance: runningBalance,
+            method: "—",
+            notes: "No Late Fee enforced.",
+            isSynthetic: true,
+          });
+        }
+      } else {
+        // No decision yet — show synthetic calculated row
+        const fee = record ? lateFeeForMonth(tenant, month, record) : 0;
+        if (fee > 0.005) {
+          runningBalance += fee;
+          rowNum++;
+          result.push({
+            rowNum,
+            date: lateFeeDate(month, tenant.lateFeeSettings?.gracePeriodDays ?? 5).toISOString(),
+            month,
+            amountDue: fee,
+            amountPaid: 0,
+            balance: runningBalance,
+            method: "—",
+            notes: "Late Fee",
+            isSynthetic: true,
+          });
+        }
       }
 
       // Real payment entries
@@ -227,7 +269,7 @@ export default function LedgerView() {
     }
 
     return result;
-  }, [yearEntries, yearRecords, data.rentRecords, tenant, year]);
+  }, [yearEntries, yearRecords, data.rentRecords, data.lateFeeDecisions, tenant, year]);
 
   // Receipt numbers: NNN = sequential index of an entry among ALL of this tenant's
   // entries sorted by date (1-based). Keyed by entry id.
@@ -258,7 +300,11 @@ export default function LedgerView() {
     const max = maxAmount ? parseFloat(maxAmount) : null;
     const needle = notesSearch.trim().toLowerCase();
     return rows.filter((r) => {
-      const isLateFee = r.isSynthetic && r.notes === "Late Fee";
+      const isLateFee =
+        r.isSynthetic &&
+        (r.notes === "Late Fee" ||
+          r.notes === "Late Fee Charged" ||
+          r.notes === "No Late Fee enforced.");
       // Status filter
       if (statusFilter === "late-fee") {
         if (!isLateFee) return false;
@@ -321,7 +367,7 @@ export default function LedgerView() {
       : `${year}-12`;
   const ytdDue = yearRecords
     .filter((r) => r.month <= maxMonth)
-    .reduce((s, r) => s + r.amountDue + lateFeeForMonth(tenant, r.month, r), 0);
+    .reduce((s, r) => s + r.amountDue + resolvedFee(r.month, r), 0);
   const ytdPaid = yearEntries.reduce((s, e) => s + e.amountPaid, 0);
   const ytdOutstanding = ytdDue - ytdPaid;
 
