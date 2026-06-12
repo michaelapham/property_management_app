@@ -4,7 +4,7 @@ import { useStore } from "../data/store";
 import { PAYMENT_METHOD_LABEL } from "../types";
 import { fullAddress, money } from "../utils/format";
 import { lateFeeDate, lateFeeForMonth, monthName, prevMonthKey } from "../utils/tenantCalc";
-import { BookIcon, ChevronLeft, DownloadIcon } from "../components/icons";
+import { BookIcon, ChevronLeft, DownloadIcon, SpinnerIcon } from "../components/icons";
 import {
   exportCSV,
   exportExcel,
@@ -48,6 +48,7 @@ export default function LedgerView() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const exportBtnRef = useRef<HTMLButtonElement>(null);
 
   // Filter state
@@ -342,12 +343,15 @@ export default function LedgerView() {
   };
 
   function handleExport(fn: () => void) {
+    setExporting(true);
     try {
       fn();
     } catch (err) {
       // Guard: export errors (popup blocked, xlsx failure) should not crash the page
       alert("Export failed — please try again or use a different format.");
       console.error("Export error:", err);
+    } finally {
+      setTimeout(() => setExporting(false), 500);
     }
     setExportOpen(false);
   }
@@ -383,10 +387,16 @@ export default function LedgerView() {
         <div style={{ position: "relative" }}>
           <button
             ref={exportBtnRef}
-            className="btn btn-ghost btn-sm"
+            className={`btn btn-ghost btn-sm${exporting ? " btn-loading" : ""}`}
+            aria-label="Export options"
+            disabled={exporting}
             onClick={() => setExportOpen((o) => !o)}
           >
-            <DownloadIcon size={14} /> Export
+            {exporting ? (
+              <><SpinnerIcon size={14} /> Preparing…</>
+            ) : (
+              <><DownloadIcon size={14} /> Export</>
+            )}
           </button>
           {exportOpen && (
             <>

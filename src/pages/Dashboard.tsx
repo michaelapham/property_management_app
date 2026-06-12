@@ -17,6 +17,7 @@ import Avatar from "../components/Avatar";
 import NoteModal from "../components/NoteModal";
 import Overlay from "../components/Overlay";
 import PaymentModal from "../components/PaymentModal";
+import ConfirmSheet from "../components/ConfirmSheet";
 import { BarChart2Icon, CheckIcon, PlusIcon, TrashIcon, UploadIcon } from "../components/icons";
 import EmptyState, { UsersIllustration } from "../components/EmptyState";
 import SwipeRow from "../components/SwipeRow";
@@ -183,6 +184,7 @@ export default function Dashboard() {
   const [showKpi, setShowKpi] = useState(false);
   const [kpiReveal, setKpiReveal] = useState(0);
   const [pendingConfirm, setPendingConfirm] = useState<{ action: () => void } | null>(null);
+  const [pendingImport, setPendingImport] = useState<unknown | null>(null);
   const [paymentFor, setPaymentFor] = useState<{ row: Row; defaultMode: "full" | "partial" } | null>(null);
   const [noteFor, setNoteFor] = useState<{ tenantId: string; propertyId: string; name: string } | null>(null);
   const [justPaidId, setJustPaidId] = useState<string | null>(null);
@@ -251,9 +253,7 @@ export default function Dashboard() {
           alert("Invalid backup file — please choose a LandlordHQ .json export.");
           return;
         }
-        if (confirm("Replace all current data with this backup?")) {
-          importData(parsed);
-        }
+        setPendingImport(parsed);
       } catch {
         alert("Could not read the file. Make sure it's a valid JSON backup.");
       }
@@ -672,6 +672,21 @@ export default function Dashboard() {
             </div>
           </div>
         </Overlay>
+      )}
+
+      {pendingImport != null && (
+        <ConfirmSheet
+          title="Restore from backup?"
+          body="This replaces all current data on this device with the contents of this backup file. This can't be undone."
+          confirmLabel="Replace all data"
+          cancelLabel="Keep current data"
+          destructive
+          onConfirm={() => {
+            importData(pendingImport as Parameters<typeof importData>[0]);
+            setPendingImport(null);
+          }}
+          onCancel={() => setPendingImport(null)}
+        />
       )}
 
       {paymentFor && (

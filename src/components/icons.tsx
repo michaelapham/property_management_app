@@ -12,6 +12,8 @@ function svgProps(size = 22) {
     strokeWidth: 2,
     strokeLinecap: "round" as const,
     strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+    focusable: false,
   };
 }
 
@@ -166,5 +168,11 @@ export const BarChart2Icon = ({ size }: IconProps) => (
     <line x1="18" y1="20" x2="18" y2="10" />
     <line x1="12" y1="20" x2="12" y2="4" />
     <line x1="6" y1="20" x2="6" y2="14" />
+  </svg>
+);
+
+export const SpinnerIcon = ({ size }: IconProps) => (
+  <svg {...svgProps(size ?? 16)} className="spinner-icon">
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
   </svg>
 );
