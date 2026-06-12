@@ -20,6 +20,26 @@ import PaymentModal from "../components/PaymentModal";
 import { BarChart2Icon, CheckIcon, PlusIcon, TrashIcon, UploadIcon } from "../components/icons";
 import EmptyState, { UsersIllustration } from "../components/EmptyState";
 import SwipeRow from "../components/SwipeRow";
+import CheckmarkBurst from "../components/CheckmarkBurst";
+import { useLongPress } from "../hooks/useLongPress";
+import ContextMenu from "../components/ContextMenu";
+import { CtxEyeIcon, CtxCheckIcon, CtxPencilIcon, CtxTrashIcon } from "../components/ctxIcons";
+
+function LongPressWrap({
+  children,
+  onLongPress,
+}: {
+  children: React.ReactNode;
+  onLongPress: (rect: DOMRect) => void;
+}) {
+  const lp = useLongPress({
+    onLongPress: (e) => {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      onLongPress(rect);
+    },
+  });
+  return <div {...lp}>{children}</div>;
+}
 
 // ---------- Roster snapshot types & helpers ----------
 
@@ -165,6 +185,8 @@ export default function Dashboard() {
   const [pendingConfirm, setPendingConfirm] = useState<{ action: () => void } | null>(null);
   const [paymentFor, setPaymentFor] = useState<{ row: Row; defaultMode: "full" | "partial" } | null>(null);
   const [noteFor, setNoteFor] = useState<{ tenantId: string; propertyId: string; name: string } | null>(null);
+  const [justPaidId, setJustPaidId] = useState<string | null>(null);
+  const [menuFor, setMenuFor] = useState<{ row: Row; rect: DOMRect } | null>(null);
 
   // Roster snapshots: frozen tenant+property list per past/first-written month.
   const [rosters, setRosters] = useState<Record<string, RosterEntry[]>>(loadRosters);
@@ -288,6 +310,14 @@ export default function Dashboard() {
     ensureFutureSnapshot();
     const { row } = paymentFor;
     recordPaymentForMonth(row.tenant.id, viewMonth, amount, method, notes.trim() || undefined);
+    // Determine whether this payment fully settles the month → success checkmark
+    const remaining = row.record.amountDue - row.record.amountPaid;
+    const paidInFull =
+      amount === "full" || (typeof amount === "number" && amount >= remaining - 0.005);
+    if (paidInFull) {
+      setJustPaidId(row.tenant.id);
+      setTimeout(() => setJustPaidId(null), 600);
+    }
     if (notes.trim()) {
       addNote({
         tenantId: row.tenant.id,
@@ -390,15 +420,35 @@ export default function Dashboard() {
       )}
 
       {listReady && rows.length > 0 && (
-        <div className="rent-table">
+        <div className="rent-table" key={viewMonth}>
           {rows.map((row, i) => {
             const status = rentStatusOf(row.record);
             const remaining = row.record.amountDue - row.record.amountPaid;
             // For StatusBadge we need a full Property; fall back to live store or a stub.
             const liveProperty = data.properties.find((p) => p.id === row.property.id);
             return (
-              <SwipeRow
+              <div
                 key={row.record.id}
+                className="stagger-item"
+                style={{ ["--stagger-delay" as string]: `${Math.min(i, 10) * 40}ms`, position: "relative" } as React.CSSProperties}
+              >
+              {justPaidId === row.tenant.id && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 5,
+                    pointerEvents: "none",
+                  }}
+                >
+                  <CheckmarkBurst size={40} />
+                </div>
+              )}
+              <LongPressWrap onLongPress={(rect) => setMenuFor({ row, rect })}>
+              <SwipeRow
                 revealWidth={status !== "paid" ? 160 : 88}
                 marginBottom={0}
                 actions={
@@ -548,12 +598,49 @@ export default function Dashboard() {
                 </div>
               </div>
               </SwipeRow>
+              </LongPressWrap>
+              </div>
             );
           })}
         </div>
       )}
 
         </>
+      )}
+
+      {menuFor && (
+        <ContextMenu
+          anchorRect={menuFor.rect}
+          onClose={() => setMenuFor(null)}
+          items={[
+            {
+              label: "View Details",
+              icon: <CtxEyeIcon />,
+              onClick: () => navigate(`/tenants/${menuFor.row.tenant.id}`),
+            },
+            {
+              label: "Mark Paid",
+              icon: <CtxCheckIcon />,
+              onClick: () =>
+                withPastConfirm(() => setPaymentFor({ row: menuFor.row, defaultMode: "full" })),
+            },
+            {
+              label: "Edit Tenant",
+              icon: <CtxPencilIcon />,
+              onClick: () => navigate(`/tenants/${menuFor.row.tenant.id}`),
+            },
+            {
+              label: "Delete Tenant",
+              icon: <CtxTrashIcon />,
+              destructive: true,
+              onClick: () =>
+                setDeletingTenant({
+                  id: menuFor.row.tenant.id,
+                  name: `${menuFor.row.tenant.firstName} ${menuFor.row.tenant.lastName}`,
+                }),
+            },
+          ]}
+        />
       )}
 
       {/* Past-month edit confirmation */}

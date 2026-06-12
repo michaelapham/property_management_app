@@ -19,6 +19,7 @@ export default function AddProperty() {
   const { addProperty, addTenant } = useStore();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [saved, setSaved] = useState(false);
 
   // Step 1 — address
   const [street, setStreet] = useState("");
@@ -398,10 +399,17 @@ export default function AddProperty() {
 
           <button
             className="btn btn-green btn-block btn-lg"
-            disabled={!tenantValid}
-            onClick={finish}
+            disabled={!tenantValid || saved}
+            onClick={() => {
+              setSaved(true);
+              setTimeout(finish, 300);
+            }}
           >
-            Save Property{hasTenant && firstName ? " & Tenant" : ""}
+            {saved ? (
+              <span style={{ color: "#fff", display: "inline-flex", alignItems: "center", gap: 6 }}>✓ Saved</span>
+            ) : (
+              <>Save Property{hasTenant && firstName ? " & Tenant" : ""}</>
+            )}
           </button>
         </div>
       )}

@@ -25,6 +25,12 @@ const PrinterIcon = ({ size = 15 }: { size?: number }) => (
   </svg>
 );
 
+const ReceiptCheckIcon = ({ size = 15 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#15803D" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
 function fmtLedgerDate(iso: string): string {
   const d = new Date(iso);
   return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
@@ -52,6 +58,7 @@ export default function LedgerView() {
   const [minAmount, setMinAmount] = useState("");
   const [maxAmount, setMaxAmount] = useState("");
   const [notesSearch, setNotesSearch] = useState("");
+  const [receiptFlashId, setReceiptFlashId] = useState<number | null>(null);
 
   const tenant = data.tenants.find((t) => t.id === id);
   if (!tenant) {
@@ -578,7 +585,11 @@ export default function LedgerView() {
                   return (
                     <tr
                       key={row.rowNum}
-                      style={row.isSynthetic ? { background: "#FFFBEB", fontStyle: "italic", opacity: 0.9 } : undefined}
+                      className="stagger-item"
+                      style={{
+                        ["--stagger-delay" as string]: `${Math.min(row.rowNum - 1, 10) * 40}ms`,
+                        ...(row.isSynthetic ? { background: "#FFFBEB", fontStyle: "italic", opacity: 0.9 } : {}),
+                      } as React.CSSProperties}
                     >
                       <td className="ledger-num">{row.rowNum}</td>
                       <td className="ledger-date">{fmtLedgerDate(row.date)}</td>
@@ -602,9 +613,13 @@ export default function LedgerView() {
                             style={{ padding: "4px 6px" }}
                             title="Print receipt"
                             aria-label="Print receipt"
-                            onClick={() => printReceiptForRow(row)}
+                            onClick={() => {
+                              setReceiptFlashId(row.rowNum);
+                              printReceiptForRow(row);
+                              setTimeout(() => setReceiptFlashId(null), 500);
+                            }}
                           >
-                            <PrinterIcon size={15} />
+                            {receiptFlashId === row.rowNum ? <ReceiptCheckIcon size={15} /> : <PrinterIcon size={15} />}
                           </button>
                         )}
                       </td>

@@ -8,6 +8,25 @@ import SwipeRow from "../components/SwipeRow";
 import EmptyState, { WrenchIllustration } from "../components/EmptyState";
 import { PhoneIcon, PlusIcon, SparkleIcon, StarIcon, TrashIcon } from "../components/icons";
 import { telHref } from "../utils/format";
+import { useLongPress } from "../hooks/useLongPress";
+import ContextMenu from "../components/ContextMenu";
+import { CtxPhoneIcon, CtxTrashIcon } from "../components/ctxIcons";
+
+function ContractorRow({
+  children,
+  onLongPress,
+}: {
+  children: React.ReactNode;
+  onLongPress: (rect: DOMRect) => void;
+}) {
+  const lp = useLongPress({
+    onLongPress: (e) => {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      onLongPress(rect);
+    },
+  });
+  return <div {...lp}>{children}</div>;
+}
 
 export const TRADES: { value: Trade; label: string; emoji: string }[] = [
   { value: "plumber", label: "Plumber", emoji: "🔧" },
@@ -30,6 +49,7 @@ export default function Contractors() {
   const [selectedTrade, setSelectedTrade] = useState<Trade>("plumber");
   const [showAdd, setShowAdd] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [menuFor, setMenuFor] = useState<{ id: string; phone: string; rect: DOMRect } | null>(null);
 
   const saved = data.contractors.filter((c) => c.trade === selectedTrade);
 
@@ -85,9 +105,14 @@ export default function Contractors() {
           cta={{ label: "Add Contractor", onClick: () => setShowAdd(true) }}
         />
       ) : (
-        saved.map((c) => (
-          <SwipeRow
+        saved.map((c, i) => (
+          <div
             key={c.id}
+            className="stagger-item"
+            style={{ ["--stagger-delay" as string]: `${Math.min(i, 10) * 40}ms`, marginBottom: 10 } as React.CSSProperties}
+          >
+          <ContractorRow onLongPress={(rect) => setMenuFor({ id: c.id, phone: c.phone, rect })}>
+          <SwipeRow
             revealWidth={160}
             actions={
               <>
@@ -164,6 +189,8 @@ export default function Contractors() {
               </div>
             </div>
           </SwipeRow>
+          </ContractorRow>
+          </div>
         ))
       )}
 
@@ -175,6 +202,26 @@ export default function Contractors() {
             setShowAdd(false);
           }}
           onClose={() => setShowAdd(false)}
+        />
+      )}
+
+      {menuFor && (
+        <ContextMenu
+          anchorRect={menuFor.rect}
+          onClose={() => setMenuFor(null)}
+          items={[
+            {
+              label: "Call",
+              icon: <CtxPhoneIcon />,
+              onClick: () => { window.location.href = telHref(menuFor.phone); },
+            },
+            {
+              label: "Delete Contractor",
+              icon: <CtxTrashIcon />,
+              destructive: true,
+              onClick: () => setDeletingId(menuFor.id),
+            },
+          ]}
         />
       )}
 

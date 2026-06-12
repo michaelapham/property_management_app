@@ -6,11 +6,31 @@ import { ChevronRight, PlusIcon, TrashIcon } from "../components/icons";
 import EmptyState, { HomeIllustration } from "../components/EmptyState";
 import SwipeRow from "../components/SwipeRow";
 import Modal from "../components/Modal";
+import { useLongPress } from "../hooks/useLongPress";
+import ContextMenu from "../components/ContextMenu";
+import { CtxEyeIcon, CtxPencilIcon, CtxTrashIcon } from "../components/ctxIcons";
+
+function PropertyRow({
+  children,
+  onLongPress,
+}: {
+  children: React.ReactNode;
+  onLongPress: (rect: DOMRect) => void;
+}) {
+  const lp = useLongPress({
+    onLongPress: (e) => {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      onLongPress(rect);
+    },
+  });
+  return <div {...lp}>{children}</div>;
+}
 
 export default function Properties() {
   const { data, removeProperty } = useStore();
   const navigate = useNavigate();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [menuFor, setMenuFor] = useState<{ id: string; rect: DOMRect } | null>(null);
 
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -39,11 +59,16 @@ export default function Properties() {
         />
       ) : (
         <>
-          {data.properties.map((p) => {
+          {data.properties.map((p, i) => {
             const tenants = data.tenants.filter((t) => t.propertyId === p.id);
             return (
-              <SwipeRow
+              <div
                 key={p.id}
+                className="stagger-item"
+                style={{ ["--stagger-delay" as string]: `${Math.min(i, 10) * 40}ms` } as React.CSSProperties}
+              >
+              <PropertyRow onLongPress={(rect) => setMenuFor({ id: p.id, rect })}>
+              <SwipeRow
                 revealWidth={88}
                 actions={
                   <button
@@ -100,12 +125,39 @@ export default function Properties() {
                   </span>
                 </Link>
               </SwipeRow>
+              </PropertyRow>
+              </div>
             );
           })}
           <button className="fab" aria-label="Add property" onClick={() => navigate("/properties/new")}>
             <PlusIcon size={26} />
           </button>
         </>
+      )}
+
+      {menuFor && (
+        <ContextMenu
+          anchorRect={menuFor.rect}
+          onClose={() => setMenuFor(null)}
+          items={[
+            {
+              label: "View Details",
+              icon: <CtxEyeIcon />,
+              onClick: () => navigate(`/properties/${menuFor.id}`),
+            },
+            {
+              label: "Edit Property",
+              icon: <CtxPencilIcon />,
+              onClick: () => navigate(`/properties/${menuFor.id}`),
+            },
+            {
+              label: "Delete Property",
+              icon: <CtxTrashIcon />,
+              destructive: true,
+              onClick: () => setDeletingId(menuFor.id),
+            },
+          ]}
+        />
       )}
 
       {deletingId && (
